@@ -21,6 +21,8 @@ class Context:
     industry_season: dict[int, float] | None = None      # месяц → индекс (среднее по месяцам = 1)
     enp_index: dict[int, float] | None = None
     industry_delays: dict | None = None                  # {направление: DelayProfile} по отрасли (см. receivables)
+    revenue_m2: object | None = None                     # глобальный бустинг выручки (revenue.train_revenue_m2), P2
+    industry_code: int = 0                               # код отрасли для M2
 
 
 def compute_industry_season(ops: pd.DataFrame, companies: pd.DataFrame, as_of: date) -> dict[str, dict[int, float]]:

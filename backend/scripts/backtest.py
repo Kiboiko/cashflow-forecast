@@ -31,6 +31,7 @@ from app.engine.backtest import (
     STRUCTURAL_CAL,
     STRUCTURAL_EXT,
     STRUCTURAL_M0,
+    STRUCTURAL_M2,
     YELLOW_PROB,
     detection_metrics,
     reliability,
@@ -43,6 +44,7 @@ from app.engine.enrich import enrich
 from app.engine.io import load_companies, load_operations
 from app.engine.normalize import normalize
 from app.engine.receivables import industry_profiles
+from app.engine.revenue import sales_series, train_revenue_m2
 from app.engine.taxes import compute_enp_index
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,7 +54,8 @@ TEST = [date(2026, 3, 31), date(2026, 4, 30), date(2026, 5, 31), date(2026, 6, 3
 TITLES = {NAIVE: "Наивный (остаток не меняется)", SEASONAL_NAIVE: "Сезонно-наивный (потоки прошлых недель)",
           STRUCTURAL_M0: "Структурный, выручка M0", STRUCTURAL: "Структурный, выручка M1",
           STRUCTURAL_CAL: "Структурный + калибровка шанса",
-          STRUCTURAL_EXT: "+ внешние данные (демо-учётная система)"}
+          STRUCTURAL_EXT: "+ внешние данные (демо-учётная система)",
+          STRUCTURAL_M2: "Структурный + ML, выручка M2 (бустинг)"}
 DEMO_POINTS = {("C064", date(2026, 7, 31)), ("C103", date(2026, 7, 31)), ("C107", date(2026, 7, 31))}
 
 
@@ -67,18 +70,31 @@ def add_calibrated(points: list[dict], tune_set: set[str], eps: float = 1e-3) ->
     return a, b
 
 
+def train_m2_at(cat: pd.DataFrame, industry: pd.Series, codes: dict[str, int], cutoff: date):
+    """Глобальный M2 на продажах по картам всех компаний до отсечки (без утечек)."""
+    items = {}
+    for cid, g in cat[cat["date"] <= pd.Timestamp(cutoff)].groupby("company_id"):
+        series = sales_series(g, cutoff, "card")
+        if series is not None:
+            items[cid] = (series, codes.get(industry.get(cid), 0))
+    return train_revenue_m2(items)
+
+
 def build_contexts(ops_all: pd.DataFrame, companies: pd.DataFrame, cutoffs: list[date]) -> dict:
     """{компания: {отсечка: Context}} на данных ≤ отсечки (отраслевая сезонность, индекс ЕНП)."""
     cat = enrich(categorize(ops_all))
     industry = companies.set_index("company_id")["industry"]
+    codes = {name: i for i, name in enumerate(sorted(industry.unique()))}
     out: dict[str, dict] = {c: {} for c in companies["company_id"]}
     for cutoff in cutoffs:
         seasons = compute_industry_season(cat, companies, cutoff)
         enp = compute_enp_index(cat, cutoff)
         delays = industry_profiles(cat, companies, cutoff)
+        m2 = train_m2_at(cat, industry, codes, cutoff)
         for cid in out:
             out[cid][cutoff] = Context(industry_season=seasons.get(industry.get(cid)), enp_index=enp,
-                                       industry_delays=delays.get(industry.get(cid)))
+                                       industry_delays=delays.get(industry.get(cid)), revenue_m2=m2,
+                                       industry_code=codes.get(industry.get(cid), 0))
     return out
 
 

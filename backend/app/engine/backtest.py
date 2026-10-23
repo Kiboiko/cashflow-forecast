@@ -29,6 +29,7 @@ STRUCTURAL_M0 = "structural_m0"
 STRUCTURAL = "structural"
 STRUCTURAL_CAL = "structural_calibrated"
 STRUCTURAL_EXT = "structural_external"
+STRUCTURAL_M2 = "structural_m2"
 
 
 @dataclass
@@ -254,7 +255,7 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
         context = contexts.get(cutoff)
         rng = np.random.default_rng([seed, cutoff.toordinal()])
         rows = {}
-        for name, method in ((STRUCTURAL, "m1"), (STRUCTURAL_M0, "m0")):
+        for name, method in ((STRUCTURAL, "m1"), (STRUCTURAL_M0, "m0"), (STRUCTURAL_M2, "m2")):
             model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
                                 context=context, revenue_method=method)
             result = evaluate(model, n_paths, with_recommendations=False)

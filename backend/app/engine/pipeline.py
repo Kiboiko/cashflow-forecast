@@ -76,7 +76,7 @@ def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None
                 invoices: list[Invoice] | None = None) -> Model:
     """Обучение моделей на операциях ≤ as_of. `ops` — нормализованные операции ОДНОГО бизнеса.
 
-    `revenue_method`: "m1" — декомпозиция (основная), "m0" — сезонно-наивная (для сравнения подходов).
+    `revenue_method`: "m1" — декомпозиция (основная), "m0" — сезонно-наивная, "m2" — бустинг (нужен `context.revenue_m2`).
     `invoices`: открытые счета из учётной системы, CSV, 1С или ручного ввода (None — источник не подключён).
     Тогда оплаты клиентов и поставщиков ведут явные счета и модель «выставление × задержка», а не недельный бутстрэп.
     """
@@ -106,7 +106,8 @@ def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None
             streams = [s for s in streams if s.category != "owner_withdrawal"]
         rec_events = expand_streams(streams, as_of, horizon)
         tax_events = forecast_enp(ops_p, as_of, horizon, context.enp_index)
-        revenue = fit_revenue(ops_p, as_of, horizon, quality.gaps, context.industry_season, revenue_method)
+        revenue = fit_revenue(ops_p, as_of, horizon, quality.gaps, context.industry_season, revenue_method,
+                              context.revenue_m2, context.industry_code)
         rates = [m for m in (fit_rates(ops_p, as_of, horizon, direction, streams, quality.gaps,
                                        context.industry_season, exclude[direction])
                              for direction in (1, -1)) if m is not None]
