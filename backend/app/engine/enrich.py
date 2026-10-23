@@ -17,6 +17,8 @@ CONTRACT_RE = re.compile(rf"договор[ауе]?\s*№\s*([\w/-]+)(?:\s*от\
 CARD_DATE_RE = re.compile(rf"дата реестра {_DATE}")
 SBP_DATE_RE = re.compile(rf"\bза {_DATE}")
 PERIOD_RE = re.compile(rf"\bс {_DATE} по {_DATE}")
+# «по реестру № 64 от 10.07.2026»: плановая дата выплаты зарплаты, даже если заплатили позже
+REGISTER_RE = re.compile(rf"\b(?:реестр|ведомост)[а-я]*\s*№?\s*[\w/-]+\s*от\s*{_DATE}")
 
 _DOC_TYPE = {"у": "upd", "с": "invoice", "а": "act"}  # по первой букве: упд / счет* / акт*
 
@@ -39,7 +41,7 @@ def _to_date(s: pd.Series) -> pd.Series:
 
 def enrich(ops: pd.DataFrame) -> pd.DataFrame:
     """Добавляет столбцы: doc_type, doc_no, doc_date, contract_no, contract_date,
-    period_start, period_end и (если есть `category`) sales_date, salary_kind."""
+    period_start, period_end, register_date и (если есть `category`) sales_date, salary_kind."""
     out = ops.copy()
     p = out["purpose_norm"]
 
@@ -55,6 +57,7 @@ def enrich(ops: pd.DataFrame) -> pd.DataFrame:
     period = p.str.extract(PERIOD_RE)
     out["period_start"] = _to_date(period[0])
     out["period_end"] = _to_date(period[1])
+    out["register_date"] = _to_date(p.str.extract(REGISTER_RE)[0])
 
     if "category" in out.columns:
         sales = pd.Series(pd.NaT, index=out.index, dtype="datetime64[ns]")

@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from app.engine.calendar_ru import nominal_date, shift
 from app.engine.normalize import normalize
 
 RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
@@ -36,3 +37,24 @@ def make_statement(days: dict[date, list[dict]], start: float = 100_000.0, jumps
                 "payment_purpose": o["purpose"], "balance_eod": round(balance, 2),
             })
     return normalize(pd.DataFrame(rows))
+
+
+def monthly(start: str, n: int, day: int, rule: str, amount, purpose, inn: str | None = "0099",
+            name: str = "ООО «Контрагент»", sign: int = -1) -> dict[date, list[dict]]:
+    """n ежемесячных платежей, начиная с месяца `start` ('2025-03'), с переносом выходных по правилу."""
+    out: dict[date, list[dict]] = {}
+    for k in range(n):
+        p = pd.Period(start, "M") + k
+        d = shift(nominal_date(p.year, p.month, day), rule)
+        a = amount(p) if callable(amount) else amount
+        text = purpose(p, d) if callable(purpose) else purpose
+        out.setdefault(d, []).append(op(sign, a, text, inn=inn, name=name))
+    return out
+
+
+def merge(*series: dict) -> dict:
+    out: dict[date, list[dict]] = {}
+    for s in series:
+        for d, ops in s.items():
+            out.setdefault(d, []).extend(ops)
+    return out
