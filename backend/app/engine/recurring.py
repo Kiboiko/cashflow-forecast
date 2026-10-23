@@ -19,8 +19,9 @@ from app.engine.types import PlannedEvent, RecurringStream
 CANDIDATES: dict[str, int] = {
     "salary": -1, "rent": -1, "utilities": -1, "telecom_it": -1, "bank_fees": -1, "loan_repayment": -1,
     "leasing": -1, "services": -1, "contractors": -1, "marketing": -1, "owner_withdrawal": -1,
-    "revenue_agent": 1, "client_payment": 1,
+    "revenue_agent": 1, "revenue_marketplace": 1, "client_payment": 1,
 }
+SEASONAL_MONTHLY = {"utilities", "revenue_agent"}      # сумма месяца зависит от сезона (§6.6, §6.9)
 SHIFT_RULE = {"salary": "prev"}          # остальные платежи при выходном переносятся вперёд
 HISTORY_MONTHS = 13
 MIN_PAYMENTS = 3
@@ -153,7 +154,7 @@ def _detect_one(key: str, g: pd.DataFrame, as_of: date) -> RecurringStream | Non
         explain = (f"Платите {anchor}-го последние {min(6, len(per_day))} мес.; "
                    "сумма ≈ медиана 3 последних выплат")
 
-    seasonal = _seasonal_amounts(per_day) if category == "utilities" and period == "monthly" else None
+    seasonal = _seasonal_amounts(per_day) if category in SEASONAL_MONTHLY and period == "monthly" else None
 
     return RecurringStream(
         key=key, category=category, direction=CANDIDATES[category], period=period, anchor_day=anchor,

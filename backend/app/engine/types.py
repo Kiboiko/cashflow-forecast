@@ -3,11 +3,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Literal
+from typing import Literal, Protocol
+
+import numpy as np
 
 Direction = Literal[1, -1]          # +1 поступление, −1 списание
 Period = Literal["monthly", "weekly", "quarterly"]
 ShiftRule = Literal["prev", "next"]
+
+
+class Component(Protocol):
+    """Источник денежных потоков в симуляции (§6.12): знаковая матрица [n_paths, len(dates)]."""
+
+    def sample(self, dates: list[date], n_paths: int, rng: np.random.Generator) -> np.ndarray: ...
 
 
 @dataclass
