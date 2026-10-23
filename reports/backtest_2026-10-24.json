@@ -493,6 +493,83 @@
             "shortfall_error_rel_median": 0.484994119349692
           }
         }
+      },
+      "structural_m2": {
+        "title": "Структурный + ML, выручка M2 (бустинг)",
+        "horizons": {
+          "7": {
+            "rel_mae_median": 0.05222794643911296,
+            "rel_mae_mean": 0.20001258411541406,
+            "interval_coverage": 0.752518315018315,
+            "detection": {
+              "n": 624,
+              "positives": 30,
+              "precision": 0.3076923076923077,
+              "recall": 0.9333333333333333,
+              "roc_auc": 0.9833052749719415,
+              "pr_auc": 0.8200934304407635
+            },
+            "detection_red": {
+              "n": 624,
+              "positives": 30,
+              "precision": 0.45,
+              "recall": 0.9,
+              "roc_auc": 0.9833052749719415,
+              "pr_auc": 0.8200934304407635
+            },
+            "lead_days_median": 1.0,
+            "date_error_days_median": 0.0,
+            "shortfall_error_rel_median": 0.33570003550085403
+          },
+          "14": {
+            "rel_mae_median": 0.1102383289068362,
+            "rel_mae_mean": 0.30356896709730136,
+            "interval_coverage": 0.7497710622710623,
+            "detection": {
+              "n": 624,
+              "positives": 46,
+              "precision": 0.3088235294117647,
+              "recall": 0.9130434782608695,
+              "roc_auc": 0.935779298931849,
+              "pr_auc": 0.6265649263969768
+            },
+            "detection_red": {
+              "n": 624,
+              "positives": 46,
+              "precision": 0.45569620253164556,
+              "recall": 0.782608695652174,
+              "roc_auc": 0.935779298931849,
+              "pr_auc": 0.6265649263969768
+            },
+            "lead_days_median": 2.5,
+            "date_error_days_median": 0.0,
+            "shortfall_error_rel_median": 0.5819479774398045
+          },
+          "30": {
+            "rel_mae_median": 0.18343418964602115,
+            "rel_mae_mean": 0.48972166549702056,
+            "interval_coverage": 0.7447649572649573,
+            "detection": {
+              "n": 624,
+              "positives": 73,
+              "precision": 0.3541666666666667,
+              "recall": 0.9315068493150684,
+              "roc_auc": 0.9300400268503096,
+              "pr_auc": 0.7145921567276537
+            },
+            "detection_red": {
+              "n": 624,
+              "positives": 73,
+              "precision": 0.49137931034482757,
+              "recall": 0.7808219178082192,
+              "roc_auc": 0.9300400268503096,
+              "pr_auc": 0.7145921567276537
+            },
+            "lead_days_median": 11.0,
+            "date_error_days_median": 2.0,
+            "shortfall_error_rel_median": 0.5819479774398045
+          }
+        }
       }
     },
     "flows_wape_30d": {
@@ -545,6 +622,44 @@
         "wape": 0.2460954957058583,
         "bias": -0.12001441701185815,
         "actual_share": 0.01837784375491414
+      }
+    },
+    "revenue_methods_30d": {
+      "all": {
+        "n_points": 308,
+        "structural_m0": {
+          "wape": 0.17623476780239933,
+          "bias": -0.01895928397880753,
+          "median_error": 0.14553487510300428
+        },
+        "structural": {
+          "wape": 0.08913435131138234,
+          "bias": -0.028723923038829646,
+          "median_error": 0.06977649056976404
+        },
+        "structural_m2": {
+          "wape": 0.12312958297789582,
+          "bias": -0.08036291949425411,
+          "median_error": 0.08943778588696284
+        }
+      },
+      "card_companies": {
+        "n_points": 308,
+        "structural_m0": {
+          "wape": 0.17623476780239933,
+          "bias": -0.01895928397880753,
+          "median_error": 0.14553487510300428
+        },
+        "structural": {
+          "wape": 0.08913435131138234,
+          "bias": -0.028723923038829646,
+          "median_error": 0.06977649056976404
+        },
+        "structural_m2": {
+          "wape": 0.12312958297789582,
+          "bias": -0.08036291949425411,
+          "median_error": 0.08943778588696284
+        }
       }
     }
   },
@@ -1012,6 +1127,83 @@
             "shortfall_error_rel_median": 0.39743217812843235
           }
         }
+      },
+      "structural_m2": {
+        "title": "Структурный + ML, выручка M2 (бустинг)",
+        "horizons": {
+          "7": {
+            "rel_mae_median": 0.07143079170436835,
+            "rel_mae_mean": 0.21160434699495806,
+            "interval_coverage": 0.7365079365079366,
+            "detection": {
+              "n": 765,
+              "positives": 57,
+              "precision": 0.33121019108280253,
+              "recall": 0.9122807017543859,
+              "roc_auc": 0.9565368222816929,
+              "pr_auc": 0.7828557953640296
+            },
+            "detection_red": {
+              "n": 765,
+              "positives": 57,
+              "precision": 0.5595238095238095,
+              "recall": 0.8245614035087719,
+              "roc_auc": 0.9565368222816929,
+              "pr_auc": 0.7828557953640296
+            },
+            "lead_days_median": 1.0,
+            "date_error_days_median": 0.0,
+            "shortfall_error_rel_median": 0.3067081209561813
+          },
+          "14": {
+            "rel_mae_median": 0.11982409224511989,
+            "rel_mae_mean": 0.32530044027941324,
+            "interval_coverage": 0.761437908496732,
+            "detection": {
+              "n": 765,
+              "positives": 76,
+              "precision": 0.3412322274881517,
+              "recall": 0.9473684210526315,
+              "roc_auc": 0.9560098540982354,
+              "pr_auc": 0.7812650521776051
+            },
+            "detection_red": {
+              "n": 765,
+              "positives": 76,
+              "precision": 0.5080645161290323,
+              "recall": 0.8289473684210527,
+              "roc_auc": 0.9560098540982354,
+              "pr_auc": 0.7812650521776051
+            },
+            "lead_days_median": 3.0,
+            "date_error_days_median": 0.0,
+            "shortfall_error_rel_median": 0.48830944472539795
+          },
+          "30": {
+            "rel_mae_median": 0.18696047775756686,
+            "rel_mae_mean": 0.5013701329214755,
+            "interval_coverage": 0.795599128540305,
+            "detection": {
+              "n": 765,
+              "positives": 118,
+              "precision": 0.3951890034364261,
+              "recall": 0.9745762711864406,
+              "roc_auc": 0.9396759489691666,
+              "pr_auc": 0.7946987743446718
+            },
+            "detection_red": {
+              "n": 765,
+              "positives": 118,
+              "precision": 0.5555555555555556,
+              "recall": 0.847457627118644,
+              "roc_auc": 0.9396759489691666,
+              "pr_auc": 0.7946987743446718
+            },
+            "lead_days_median": 8.0,
+            "date_error_days_median": 2.0,
+            "shortfall_error_rel_median": 0.47098831302245686
+          }
+        }
       }
     },
     "by_industry": {
@@ -1308,6 +1500,44 @@
         "wape": 0.2106351478873605,
         "bias": -0.07904951155458742,
         "actual_share": 0.015322269148026922
+      }
+    },
+    "revenue_methods_30d": {
+      "all": {
+        "n_points": 396,
+        "structural_m0": {
+          "wape": 0.11109765928749574,
+          "bias": -0.036327605092501214,
+          "median_error": 0.07749247350366129
+        },
+        "structural": {
+          "wape": 0.08549800129360231,
+          "bias": -0.0020986245921208457,
+          "median_error": 0.06292742104887922
+        },
+        "structural_m2": {
+          "wape": 0.08203986954139107,
+          "bias": -0.03531163915889857,
+          "median_error": 0.06353194546837106
+        }
+      },
+      "card_companies": {
+        "n_points": 395,
+        "structural_m0": {
+          "wape": 0.10850330898156489,
+          "bias": -0.03351503091192087,
+          "median_error": 0.07745040327210338
+        },
+        "structural": {
+          "wape": 0.0828289358277418,
+          "bias": 0.0008138502884189602,
+          "median_error": 0.06261708372755817
+        },
+        "structural_m2": {
+          "wape": 0.07936071117245408,
+          "bias": -0.0324960997802195,
+          "median_error": 0.06332344442391645
+        }
       }
     },
     "reliability_30d": [

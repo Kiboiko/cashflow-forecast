@@ -143,6 +143,26 @@ def flows_wape(points: list[dict]) -> dict:
     return out
 
 
+def revenue_methods(points: list[dict]) -> dict:
+    """Прогноз 30-дневной выручки (карты, СБП, наличные) тремя методами: WAPE, смещение, медианная ошибка по точкам.
+    `card_companies` — точки, где M2 вообще работает (у бизнеса есть эквайринг); для остальных M2 равен M1."""
+    out = {}
+    subsets = {"all": points, "card_companies": [p for p in points
+                                                  if p["revenue_pred"][STRUCTURAL_M2] != p["revenue_pred"][STRUCTURAL]]}
+    for key, subset in subsets.items():
+        subset = [p for p in subset if p["flows"]["actual"]["retail_revenue"] > 0]
+        if not subset:
+            continue
+        act = np.array([p["flows"]["actual"]["retail_revenue"] for p in subset])
+        out[key] = {"n_points": len(subset)}
+        for name in (STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_M2):
+            pred = np.array([p["revenue_pred"][name] for p in subset])
+            out[key][name] = {"wape": float(np.abs(pred - act).sum() / act.sum()),
+                              "bias": float(pred.sum() / act.sum() - 1),
+                              "median_error": float(np.median(np.abs(pred - act) / act))}
+    return out
+
+
 def external_ablation(points: list[dict]) -> dict:
     """«+внешние данные»: прирост качества там, где у бизнеса есть документы (иначе источнику нечего добавить)."""
     with_docs = [p for p in points if p.get("has_docs")]
@@ -181,7 +201,7 @@ def markdown(report: dict) -> str:
     def fmt(v, pct=False):
         return "—" if v is None else (f"{v:.0%}" if pct else f"{v:.2f}")
 
-    for name in (NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL, STRUCTURAL_EXT):
+    for name in (NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_M2, STRUCTURAL_CAL, STRUCTURAL_EXT):
         m = test[name]["horizons"]["30"]
         d = m["detection"]
         lead = m["lead_days_median"]
@@ -207,6 +227,19 @@ def markdown(report: dict) -> str:
               f"precision {fmt(red['precision'], True)}, recall {fmt(red['recall'], True)}.")
     ablation = test_report["external_ablation"]
     lines += ["", summary, "", levels, ""]
+    lines += ["## Выручка: M0, M1 и M2 (бустинг)", "",
+              "Ошибка прогноза 30-дневной выручки (WAPE и смещение прогноза к факту; меньше — лучше). Метод выбираем по отсечкам "
+              "настройки, тест — проверка. Данные начинаются в октябре 2024: на отсечках настройки у бустинга "
+              "меньше полутора лет истории, на тестовых — от полутора до двух.", "",
+              "| Метод | WAPE, настройка | Смещение, настройка | WAPE, тест | Смещение, тест |", "|---|---|---|---|---|"]
+    methods = {"tune": report["tune"].get("revenue_methods_30d", {}).get("card_companies"),
+               "test": report["test"].get("revenue_methods_30d", {}).get("card_companies")}
+    if methods["tune"] and methods["test"]:
+        for name, title in ((STRUCTURAL_M0, "M0 — сезонно-наивный"), (STRUCTURAL, "M1 — декомпозиция (по умолчанию)"),
+                            (STRUCTURAL_M2, "M2 — бустинг по картам")):
+            lines.append(f"| {title} | {methods['tune'][name]['wape']:.3f} | {methods['tune'][name]['bias']:+.1%} | "
+                         f"{methods['test'][name]['wape']:.3f} | {methods['test'][name]['bias']:+.1%} |")
+        lines.append("")
     if ablation["approaches"]:
         lines += ["## Что дают внешние данные (счета и договоры из учётной системы)", "",
                   f"Там, где у бизнеса есть документы: {ablation['n_points']} точек "
@@ -238,8 +271,9 @@ def draw_figures(report: dict, points_test: list[dict], demo: list[dict], out: P
     import matplotlib.pyplot as plt
 
     out.mkdir(parents=True, exist_ok=True)
-    names = [NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL, STRUCTURAL_EXT]
-    labels = ["Наивный", "Сезонно-\nнаивный", "Структ.\n(M0)", "Структ.\n(M1)", "Структ.\n+калибр.", "+ внешние\nданные"]
+    names = [NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_M2, STRUCTURAL_CAL, STRUCTURAL_EXT]
+    labels = ["Наивный", "Сезонно-\nнаивный", "Структ.\n(M0)", "Структ.\n(M1)", "Структ.\n+ бустинг\n(M2)", "Структ.\n+калибр.",
+              "+ внешние\nданные"]
     test = report["test"]["approaches"]
     fig, ax = plt.subplots(1, 3, figsize=(14, 3.8))
     for a, key, title in zip(ax, ("rel_mae_median", "roc_auc", "recall"),
@@ -247,7 +281,7 @@ def draw_figures(report: dict, points_test: list[dict], demo: list[dict], out: P
                               "Доля пойманных разрывов (recall)"), strict=True):
         vals = [(test[n]["horizons"]["30"][key] if key == "rel_mae_median"
                  else test[n]["horizons"]["30"]["detection"][key]) or 0 for n in names]
-        a.bar(labels, vals, color=["#9aa5b1", "#7b8794", "#4f9fd6", "#1f6fb2", "#0f4c81", "#2a9d8f"])
+        a.bar(labels, vals, color=["#9aa5b1", "#7b8794", "#4f9fd6", "#1f6fb2", "#6a8caf", "#0f4c81", "#2a9d8f"])
         a.tick_params(axis="x", labelsize=7)
         a.set_title(title, fontsize=10)
         for i, v in enumerate(vals):
@@ -336,10 +370,11 @@ def main() -> None:
                      "target": "операционный остаток B_op", "models_see": "только данные ≤ отсечки"},
         "cutoffs": {"tune": [d.isoformat() for d in TUNE], "test": [d.isoformat() for d in TEST]},
         "tune": {"n_points": len(tune), "approaches": aggregate(tune) if tune else {},
-                 "flows_wape_30d": flows_wape(tune) if tune else {}},
+                 "flows_wape_30d": flows_wape(tune) if tune else {},
+                 "revenue_methods_30d": revenue_methods(tune) if tune else {}},
         "test": {"n_points": len(test), "approaches": aggregate(test), "by_industry": by_industry(test, industry),
                  "external_ablation": external_ablation(test),
-                 "flows_wape_30d": flows_wape(test),
+                 "flows_wape_30d": flows_wape(test), "revenue_methods_30d": revenue_methods(test),
                  "reliability_30d": reliability(np.array([p["rows"][STRUCTURAL]["gap"][30] for p in test]),
                                                 np.array([p["y"][30] for p in test])),
                  "reliability_30d_calibrated": reliability(

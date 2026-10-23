@@ -254,12 +254,13 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
         prepared = prepare(ops_full[ops_full["date"] <= pd.Timestamp(cutoff)], cutoff)
         context = contexts.get(cutoff)
         rng = np.random.default_rng([seed, cutoff.toordinal()])
-        rows = {}
+        rows, revenue_pred = {}, {}
         for name, method in ((STRUCTURAL, "m1"), (STRUCTURAL_M0, "m0"), (STRUCTURAL_M2, "m2")):
             model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
                                 context=context, revenue_method=method)
             result = evaluate(model, n_paths, with_recommendations=False)
             rows[name] = _approach_row(summarize(result.simulation.balance), truth)
+            revenue_pred[name] = predicted_flows(model)["retail_revenue"]
             if name == STRUCTURAL:
                 start, structural = model.start_balance, result
                 flows = {"predicted": predicted_flows(model), "actual": actual_flows(full, cutoff)}
@@ -277,7 +278,7 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
             "company": company, "cutoff": cutoff.isoformat(), "scale": truth.scale,
             "first_gap": truth.first_gap, "max_shortfall": truth.max_shortfall,
             "y": {h: bool((truth.b_op[:h] < 0).any()) for h in HORIZONS},
-            "rows": rows, "level": structural.risk.level, "flows": flows,
+            "rows": rows, "level": structural.risk.level, "flows": flows, "revenue_pred": revenue_pred,
             "has_docs": any(i.direction == "in" for i in documents),
             "flows_external": predicted_flows(external),
             "predicted_date": (structural.risk.possible_gap_date or structural.risk.likely_gap_date),

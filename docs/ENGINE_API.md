@@ -50,6 +50,9 @@ context = build_context(enrich(categorize(ops_all)), companies_df, company_id, a
 Считается один раз на дату (несколько секунд) — **в `make seed`**, дальше хранить и передавать в `EngineState.build`.
 `ops_all` должны быть после `categorize` и `enrich`. Без контекста прогноз работает (хуже на коротких историях).
 
+Бустинг выручки (M2, `build_model(..., revenue_method="m2")` + `Context.revenue_m2`) в продукт **не включён**: по результатам
+бэктеста основной остаётся декомпозиция M1 (см. `reports/backtest.md`, §7.1). `build_context` M2 не обучает.
+
 ## 4. План предпринимателя и счета
 
 ```python
