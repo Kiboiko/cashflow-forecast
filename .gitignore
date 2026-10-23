@@ -1,0 +1,30 @@
+# Датасет и материалы организаторов — не коммитим
+*.zip
+case-*.pdf
+data/**
+!data/README.md
+
+# Секреты и окружение
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+
+# IDE и ОС
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Сгенерированное
+frontend/src/api/types.gen.ts
