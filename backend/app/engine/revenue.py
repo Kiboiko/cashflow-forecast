@@ -203,6 +203,7 @@ class SalesChannel:
     s_hat: np.ndarray                  # прогноз продаж на эти дни
     credit_idx: np.ndarray             # индекс дня зачисления в горизонте или −1
     weekday: np.ndarray                # профильный день недели
+    season: np.ndarray                 # сезонный множитель дня относительно месяца as_of (1 — без сезона)
     resid: dict[int, np.ndarray]
     level_ratios: np.ndarray
 
@@ -213,6 +214,7 @@ class RevenueModel:
     channels: list[SalesChannel]
     flags: set[str] = field(default_factory=set)       # zero_revenue_14d, short_history
     method: str = "m1"
+    key: str = "revenue"
 
     def expected(self) -> np.ndarray:
         """Ожидаемые зачисления по дням горизонта без случайности (для объяснений и тестов)."""
@@ -259,6 +261,7 @@ def fit_revenue(ops: pd.DataFrame, as_of: date, horizon: int = 30, gaps=None,
             name=name, days=days, s_hat=_predict(series, days, method, season),
             credit_idx=np.array([index.get(c, -1) for c in credits]),
             weekday=np.array([effective_weekday(d) for d in days]),
+            season=np.array([season(d) for d in days]),
             resid=_residuals(series), level_ratios=_level_ratios(series, method),
         ))
         tail = series.iloc[-ZERO_REVENUE_DAYS:].dropna()

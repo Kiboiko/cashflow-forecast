@@ -33,6 +33,10 @@ class RatesModel:
     share: np.ndarray                # доля недельной суммы на каждый день горизонта
     weeks_used: int
 
+    @property
+    def key(self) -> str:
+        return "rates:in" if self.direction > 0 else "rates:out"
+
     def expected(self) -> np.ndarray:
         return self.direction * self.weekly_sums.mean() * self.share
 
