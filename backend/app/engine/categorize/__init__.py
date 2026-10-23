@@ -23,12 +23,13 @@ def learn_memory(categorized: pd.DataFrame) -> pd.DataFrame:
 
 
 def categorize(ops: pd.DataFrame, user_rules: dict[str, str] | None = None,
-               memory: pd.DataFrame | None = None) -> pd.DataFrame:
+               memory: pd.DataFrame | None = None, ml_model=None) -> pd.DataFrame:
     """Добавляет category, category_source (user|rule|name_rule|memory|unknown), category_confidence.
 
     `user_rules`: {cp_key: category} — исправления предпринимателя (CounterpartyRule).
     `memory`: готовая память контрагентов (из `learn_memory`); без неё память строится из самих `ops`.
     Так обновление данных категоризирует только новые операции, не трогая историю.
+    `ml_model`: обученная добивка (`ml_fallback.train`) для операций, которые не разметили ни правила, ни память.
     """
     out = ops.copy()
     out["category"] = None
@@ -55,6 +56,12 @@ def categorize(ops: pd.DataFrame, user_rules: dict[str, str] | None = None,
         memory = learn_memory(out)
     cat, conf = apply_memory(out, memory, todo)
     take(cat, "memory", conf)
+
+    if ml_model is not None and todo.any():
+        from app.engine.categorize.ml_fallback import predict
+
+        cat, conf = predict(ml_model, out[todo])
+        take(cat.reindex(out.index), "ml", conf.reindex(out.index))
 
     unknown = todo
     out.loc[unknown, "category"] = out.loc[unknown, "direction"].map({1: "unknown_in", -1: "unknown_out"})

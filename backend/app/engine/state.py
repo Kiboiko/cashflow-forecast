@@ -31,16 +31,18 @@ class EngineState:
     settings: Settings
     context: Context
     user_rules: dict[str, str] | None = None
+    ml_model: object | None = None       # ML-добивка категоризации (ml_fallback.train), необязательна
 
     @classmethod
     def build(cls, ops: pd.DataFrame, as_of: date, settings: Settings | None = None,
-              user_rules: dict[str, str] | None = None, context: Context | None = None) -> EngineState:
+              user_rules: dict[str, str] | None = None, context: Context | None = None,
+              ml_model: object | None = None) -> EngineState:
         """Полная сборка: качество → категоризация → обогащение всей истории ≤ as_of."""
         raw = ops[ops["date"] <= pd.Timestamp(as_of)].reset_index(drop=True)
         quality = run_quality(raw, pd.Timestamp(as_of))
-        categorized = categorize(quality.ops, user_rules)
+        categorized = categorize(quality.ops, user_rules, ml_model=ml_model)
         return cls(raw, enrich(categorized), quality, learn_memory(categorized), as_of, settings or Settings(),
-                   context or Context(), user_rules)
+                   context or Context(), user_rules, ml_model)
 
     def update(self, new_ops: pd.DataFrame, as_of: date) -> EngineState:
         """Дозагрузка новых операций: категоризируются только они, история остаётся как есть."""
@@ -50,7 +52,8 @@ class EngineState:
         quality = run_quality(raw, pd.Timestamp(as_of))           # сверка и дыры — по расширенной выписке
         known = set(self.ops["operation_id"])
         new_rows = quality.ops[~quality.ops["operation_id"].isin(known)]
-        added = enrich(categorize(new_rows, self.user_rules, memory=self.memory)) if len(new_rows) else new_rows
+        added = (enrich(categorize(new_rows, self.user_rules, memory=self.memory, ml_model=self.ml_model))
+                 if len(new_rows) else new_rows)
         old = self.ops.set_index("operation_id")
         keep = quality.ops[quality.ops["operation_id"].isin(known)].copy()   # свежие флаги качества, старые категории
         for col in old.columns.difference(keep.columns):

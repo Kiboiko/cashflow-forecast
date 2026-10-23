@@ -61,11 +61,11 @@ def stable_seed(ops: pd.DataFrame, as_of: date) -> int:
     return zlib.crc32(f"{company}|{as_of.isoformat()}".encode())
 
 
-def prepare(ops: pd.DataFrame, as_of: date, user_rules: dict[str, str] | None = None) -> Prepared:
+def prepare(ops: pd.DataFrame, as_of: date, user_rules: dict[str, str] | None = None, ml_model=None) -> Prepared:
     """Качество → категоризация (если категорий ещё нет) → обогащение. Только операции с датой ≤ as_of."""
     ops = ops[ops["date"] <= pd.Timestamp(as_of)]
     quality = run_quality(ops, pd.Timestamp(as_of))
-    cat = quality.ops if "category" in quality.ops.columns else categorize(quality.ops, user_rules)
+    cat = quality.ops if "category" in quality.ops.columns else categorize(quality.ops, user_rules, ml_model=ml_model)
     return Prepared(enrich(cat), quality)
 
 
