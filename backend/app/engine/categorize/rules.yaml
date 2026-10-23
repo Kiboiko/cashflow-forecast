@@ -1,0 +1,44 @@
+# Применяется к purpose_norm = lower(назначение), ё→е, пробелы схлопнуты.
+# Порядок важен: побеждает первое совпадение с учётом направления
+# (in = Поступление, out = Списание).
+version: 1
+purpose_rules:
+  # ---------- поступления ----------
+  - {id: in_card,          dir: in,  category: revenue_card,         pattern: 'эквайринг'}
+  - {id: in_sbp,           dir: in,  category: revenue_sbp,          pattern: '\bсбп\b|qr-код'}
+  - {id: in_cash,          dir: in,  category: revenue_cash,         pattern: 'взнос наличных|инкассир'}
+  - {id: in_marketplace,   dir: in,  category: revenue_marketplace,  pattern: 'договору оферты .*за период'}
+  - {id: in_agent,         dir: in,  category: revenue_agent,        pattern: 'агентскому договору'}
+  - {id: in_own_transfer,  dir: in,  category: own_transfer_in,      pattern: 'перевод собственных средств'}
+  - {id: in_loan,          dir: in,  category: loan_in,              pattern: 'выдача кредита|транш'}
+  - {id: in_owner,         dir: in,  category: owner_injection,      pattern: 'займ|заем|собственными средствами|уставный капитал|погашения задолженности по овердрафту'}
+  - {id: in_refund,        dir: in,  category: refund_in,            pattern: 'возврат платежа|ошибочно|излишне'}
+  - {id: in_insurance,     dir: in,  category: insurance_in,         pattern: 'страхового возмещения'}
+  - {id: in_subsidy,       dir: in,  category: subsidy_in,           pattern: 'субсиди|грант'}
+  - {id: in_prepayment,    dir: in,  category: client_prepayment,    pattern: 'предоплат|авансовый платеж'}
+  - {id: in_client,        dir: in,  category: client_payment,       pattern: 'оплат|расчет|гарантийного удержания|перечислени'}
+  # ---------- списания ----------
+  - {id: out_tax_enforced, dir: out, category: tax_enforced,         pattern: 'по поручению налогового органа|взыскани'}
+  - {id: out_enforcement,  dir: out, category: enforcement,          pattern: 'исполнительн'}
+  - {id: out_enp,          dir: out, category: tax_enp,              pattern: 'единый налоговый|(?:^|\W)енп(?:\W|$)'}  # не 'налог': «Без налога (НДС)»!
+  - {id: out_salary,       dir: out, category: salary,               pattern: 'заработн|зарплат'}
+  - {id: out_contractors,  dir: out, category: contractors,          pattern: '\bгпх\b|подряд'}
+  - {id: out_loan,         dir: out, category: loan_repayment,       pattern: 'погашение кредита|погашение основного долга|процентов по договору кредитной|овердрафт'}
+  - {id: out_leasing,      dir: out, category: leasing,              pattern: 'лизинг'}
+  - {id: out_owner_loan,   dir: out, category: owner_loan_repayment, pattern: 'возврат .*займа'}
+  - {id: out_withdrawal,   dir: out, category: owner_withdrawal,     pattern: 'личный счет|личную карту|счет физического лица|дивиденд'}
+  - {id: out_own_transfer, dir: out, category: own_transfer_out,     pattern: 'перевод собственных средств|в связи с закрытием счета'}
+  - {id: out_bank_fees,    dir: out, category: bank_fees,            pattern: 'комисси|pos-терминал'}  # раньше аренды: «аренда POS-терминалов»
+  - {id: out_rent_deposit, dir: out, category: rent_deposit,         pattern: 'обеспечительный платеж'}
+  - {id: out_rent,         dir: out, category: rent,                 pattern: 'аренд'}
+  - {id: out_utilities,    dir: out, category: utilities,            pattern: 'электроэнерг|водоснабж|\bтко\b|теплоснабж|коммунальн'}
+  - {id: out_telecom,      dir: out, category: telecom_it,           pattern: 'услуг связи|интернет|подписка|права использования|облачных услуг'}
+  - {id: out_marketing,    dir: out, category: marketing,            pattern: 'реклам'}
+  - {id: out_logistics,    dir: out, category: logistics,            pattern: 'топливн|провоза|экспедицион'}
+  - {id: out_services,     dir: out, category: services,             pattern: 'бухгалтерск|уборк|охран|канцтовар|ремонт|хозтовар'}  # раньше capex: «ремонт автомобиля»
+  - {id: out_capex,        dir: out, category: capex,                pattern: 'купли-продажи|оборудован|автомобил'}
+  - {id: out_suppliers,    dir: out, category: suppliers,            pattern: 'упд|по счету|поставк|товар|продукц|материал'}
+  - {id: out_refund,       dir: out, category: refund_out,           pattern: 'возврат'}
+name_rules:   # только при пустом назначении; по lower(counterparty_name)
+  - {id: name_tax,  dir: out, category: tax_enp,   pattern: 'казначейство|фнс'}
+  - {id: name_bank, dir: out, category: bank_fees, pattern: '«банк»'}
