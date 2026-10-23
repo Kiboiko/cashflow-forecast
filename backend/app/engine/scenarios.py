@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import zlib
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
@@ -16,7 +17,7 @@ from app.engine.explain import dm, plural, rub
 from app.engine.model import Model
 from app.engine.rates import WEEKS
 from app.engine.recurring import stream_keys
-from app.engine.simulate import FixedEvent, TimedEvent
+from app.engine.simulate import FixedEvent, TimedEvent, lognormal_factor
 from app.engine.types import ForecastResult, PlannedEvent
 from app.schemas import (
     ClientDelayShock,
@@ -27,6 +28,8 @@ from app.schemas import (
 )
 
 CLIENT_CATEGORIES = ("client_payment", "client_prepayment")
+INVOICE_SOURCES = {"invoice", "csv", "1c", "demo_accounting", "contract_detected"}
+INVOICE_LEVEL_CV = 0.2                    # общий риск оплат по счетам (настроен по покрытию интервалов на tune)
 CATEGORY_NAMES = {"rent": "аренда", "suppliers": "закупки", "salary": "зарплата", "utilities": "коммунальные услуги",
                   "services": "услуги", "marketing": "реклама", "contractors": "подрядчики"}
 
@@ -48,6 +51,33 @@ class Scaled:
 
     def sample(self, dates, n_paths, rng):
         return self.inner.sample(dates, n_paths, rng) * self.factors
+
+
+@dataclass
+class SharedFactor:
+    """Общий для сценария множитель на группу компонентов (платёжная дисциплина клиентов, сдвиг цен поставщиков).
+
+    Все обёрнутые компоненты получают один и тот же множитель в сценарии: независимые шумы счетов в сумме
+    сглаживаются, а общий риск остаётся. Ключ — как у внутреннего компонента (общие случайные числа).
+    """
+    inner: object
+    seed: int
+    name: str
+    cv: float
+
+    @property
+    def key(self) -> str:
+        return self.inner.key
+
+    def __getattr__(self, name):
+        if name == "inner":
+            raise AttributeError(name)
+        return getattr(self.inner, name)
+
+    def sample(self, dates, n_paths, rng):
+        factor = lognormal_factor(np.random.default_rng([self.seed, zlib.crc32(self.name.encode())]), self.cv,
+                                  (n_paths, 1))
+        return self.inner.sample(dates, n_paths, rng) * factor
 
 
 @dataclass
@@ -91,7 +121,7 @@ def _delay(flows: np.ndarray, days: int) -> np.ndarray:
 def apply_shocks(model: Model, shocks: list) -> tuple[list[PlannedEvent], list]:
     """События и компоненты модели с учётом шоков. Без шоков — база."""
     events = [replace(e) for e in model.events]
-    revenue, rates = model.revenue, list(model.rates)
+    revenue, rates, future = model.revenue, list(model.rates), list(model.future)
     extra: list = []
     H = len(model.dates)
     for n, shock in enumerate(shocks):
@@ -113,6 +143,7 @@ def apply_shocks(model: Model, shocks: list) -> tuple[list[PlannedEvent], list]:
             if revenue is not None:
                 revenue = Scaled(revenue, factors)
             rates = [Scaled(r, factors) if r.direction == 1 else r for r in rates]
+            future = [Scaled(f, factors) if f.direction == 1 else f for f in future]
             for e in events:
                 if e.direction == 1 and e.category in REVENUE_CATEGORIES and e.date and e.date >= start:
                     e.amount *= 1 - shock.pct / 100
@@ -129,9 +160,16 @@ def apply_shocks(model: Model, shocks: list) -> tuple[list[PlannedEvent], list]:
             rates = [Scaled(r, np.full(H, 1 + shock.pct / 100 * sum(r.category_share.get(c, 0.0)
                                                                     for c in shock.categories)))
                      if r.direction == -1 else r for r in rates]
+            if "suppliers" in shock.categories:
+                future = [Scaled(f, np.full(H, k)) if f.direction == -1 else f for f in future]
     events.sort(key=lambda e: (e.date or model.as_of, e.id))
-    components = [TimedEvent(e) if e.date_pmf else FixedEvent(e) for e in events]
-    components += ([revenue] if revenue is not None else []) + rates + extra
+    components = []
+    for e in events:
+        c = TimedEvent(e) if e.date_pmf else FixedEvent(e)
+        components.append(SharedFactor(c, model.seed, "invoices", INVOICE_LEVEL_CV) if e.source in INVOICE_SOURCES else c)
+    future = [SharedFactor(f, model.seed, "invoices", INVOICE_LEVEL_CV) if hasattr(f, "per_workday") else f
+              for f in future]
+    components += ([revenue] if revenue is not None else []) + rates + future + extra
     return events, components
 
 

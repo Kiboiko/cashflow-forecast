@@ -20,6 +20,7 @@ MIN_MONTHS = 12
 class Context:
     industry_season: dict[int, float] | None = None      # месяц → индекс (среднее по месяцам = 1)
     enp_index: dict[int, float] | None = None
+    industry_delays: dict | None = None                  # {направление: DelayProfile} по отрасли (см. receivables)
 
 
 def compute_industry_season(ops: pd.DataFrame, companies: pd.DataFrame, as_of: date) -> dict[str, dict[int, float]]:
@@ -53,6 +54,11 @@ def compute_industry_season(ops: pd.DataFrame, companies: pd.DataFrame, as_of: d
 
 def build_context(ops_all: pd.DataFrame, companies: pd.DataFrame, company_id: str, as_of: date) -> Context:
     """Контекст для компании: отраслевая сезонность и индекс ЕНП по данным всех компаний ≤ as_of."""
+    from app.engine.receivables import (
+        industry_profiles,  # локально: receivables тянет simulate и explain
+    )
+
     seasons = compute_industry_season(ops_all, companies, as_of)
     industry = companies.set_index("company_id")["industry"].get(company_id)
-    return Context(industry_season=seasons.get(industry), enp_index=compute_enp_index(ops_all, as_of))
+    return Context(industry_season=seasons.get(industry), enp_index=compute_enp_index(ops_all, as_of),
+                   industry_delays=industry_profiles(ops_all, companies, as_of).get(industry))

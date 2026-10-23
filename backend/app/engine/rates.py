@@ -57,15 +57,18 @@ def _block_edges(as_of: date, k: int) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 def fit_rates(ops: pd.DataFrame, as_of: date, horizon: int, direction: int,
               streams: list[RecurringStream] | None = None, gaps=None,
-              season: dict[int, float] | None = None) -> RatesModel | None:
+              season: dict[int, float] | None = None, exclude: frozenset[str] = frozenset()) -> RatesModel | None:
     """Модель нерегулярных потоков одного направления (+1 приходы, −1 расходы); None, если истории мало.
 
     `streams` — все найденные регулярные потоки (активные и нет): их операции не учитываются.
     `season` — отраслевой индекс месяцев; множитель дня = season[month(d)] / season[month(as_of)].
+    (Пробовали очищать недельные блоки от собственного сезона — на отсечках настройки ошибка выросла: месячные суммы
+    лумпивных потоков дают шумный индекс.)
+    `exclude` — категории, которые ведёт другая модель (оплаты клиентов, если подключены счета).
     """
     as_of_ts = pd.Timestamp(as_of)
     hist = ops[(ops["date"] <= as_of_ts) & (ops["direction"] == direction)]
-    hist = hist[~hist["category"].isin(EXCLUDED_FROM_MODEL | HANDLED_ELSEWHERE)]
+    hist = hist[~hist["category"].isin(EXCLUDED_FROM_MODEL | HANDLED_ELSEWHERE | exclude)]
     if "reversal_pair_id" in hist:
         hist = hist[hist["reversal_pair_id"].isna()]
     if streams:

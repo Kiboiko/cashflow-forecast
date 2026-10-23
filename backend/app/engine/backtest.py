@@ -28,6 +28,7 @@ SEASONAL_NAIVE = "seasonal_naive"
 STRUCTURAL_M0 = "structural_m0"
 STRUCTURAL = "structural"
 STRUCTURAL_CAL = "structural_calibrated"
+STRUCTURAL_EXT = "structural_external"
 
 
 @dataclass
@@ -205,6 +206,8 @@ def predicted_flows(model) -> dict[str, float]:
         out[flow_group(e.category, e.direction)] += e.amount * e.p_within_horizon
     if model.revenue is not None:
         out["retail_revenue"] += float(model.revenue.expected().sum())
+    for f in model.future:                                          # выставление × задержка
+        out["client_in" if f.direction > 0 else "suppliers"] += abs(float(f.expected().sum()))
     for r in model.rates:                                           # прочие потоки — по долям категорий истории
         total = abs(float(r.expected().sum()))
         for category, share in r.category_share.items():
@@ -259,6 +262,13 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
             if name == STRUCTURAL:
                 start, structural = model.start_balance, result
                 flows = {"predicted": predicted_flows(model), "actual": actual_flows(full, cutoff)}
+        from app.engine.receivables import restore_open_documents
+
+        documents = restore_open_documents(full, cutoff)
+        external = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
+                               context=context, invoices=documents)
+        rows[STRUCTURAL_EXT] = _approach_row(summarize(evaluate(external, n_paths, with_recommendations=False)
+                                                       .simulation.balance), truth)
         rows[NAIVE] = _approach_row(summarize(naive_paths(start, 30)), truth)
         rows[SEASONAL_NAIVE] = _approach_row(
             summarize(seasonal_naive_paths(prepared.ops, cutoff, start, 30, n_paths, rng)), truth)
@@ -267,6 +277,8 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
             "first_gap": truth.first_gap, "max_shortfall": truth.max_shortfall,
             "y": {h: bool((truth.b_op[:h] < 0).any()) for h in HORIZONS},
             "rows": rows, "level": structural.risk.level, "flows": flows,
+            "has_docs": any(i.direction == "in" for i in documents),
+            "flows_external": predicted_flows(external),
             "predicted_date": (structural.risk.possible_gap_date or structural.risk.likely_gap_date),
         }
         if keep_paths_for and (company, cutoff) in keep_paths_for:

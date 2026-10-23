@@ -13,6 +13,7 @@ from app.engine.types import PlannedEvent, RecurringStream, Settings
 
 if TYPE_CHECKING:
     from app.engine.rates import RatesModel
+    from app.engine.receivables import FutureInvoices, Invoice, Profiles
     from app.engine.revenue import RevenueModel
 
 
@@ -32,3 +33,6 @@ class Model:
     planned: list[PlannedEvent] = field(default_factory=list)
     revenue: RevenueModel | None = None
     rates: list[RatesModel] = field(default_factory=list)
+    invoices: list[Invoice] | None = None          # открытые счета из учётной системы; None — источник не подключён
+    profiles: Profiles | None = None               # профили задержек клиентов и поставщиков
+    future: list[FutureInvoices] = field(default_factory=list)   # выставление × задержка (если подключены счета)

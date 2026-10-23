@@ -23,6 +23,15 @@ from app.engine.enrich import enrich
 from app.engine.model import Model
 from app.engine.quality import QualityReport, run_quality
 from app.engine.rates import fit_rates
+from app.engine.receivables import (
+    CLIENT_CATEGORIES,
+    SUPPLIER_CATEGORIES,
+    Invoice,
+    build_profiles,
+    contract_events,
+    fit_future_invoices,
+    invoice_events,
+)
 from app.engine.recommend import recommend
 from app.engine.recurring import detect_streams, expand_streams
 from app.engine.revenue import fit_revenue
@@ -63,10 +72,13 @@ def prepare(ops: pd.DataFrame, as_of: date, user_rules: dict[str, str] | None = 
 def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None,
                 planned: list[PlannedEvent] | None = None, horizon: int | None = None, seed: int | None = None,
                 user_rules: dict[str, str] | None = None, context: Context | None = None,
-                prepared: Prepared | None = None, revenue_method: str = "m1") -> Model:
+                prepared: Prepared | None = None, revenue_method: str = "m1",
+                invoices: list[Invoice] | None = None) -> Model:
     """Обучение моделей на операциях ≤ as_of. `ops` — нормализованные операции ОДНОГО бизнеса.
 
     `revenue_method`: "m1" — декомпозиция (основная), "m0" — сезонно-наивная (для сравнения подходов).
+    `invoices`: открытые счета из учётной системы, CSV, 1С или ручного ввода (None — источник не подключён).
+    Тогда оплаты клиентов и поставщиков ведут явные счета и модель «выставление × задержка», а не недельный бутстрэп.
     """
     settings = settings or Settings()
     horizon = horizon or settings.horizon_days
@@ -80,6 +92,14 @@ def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None
         start_balance += sum(float(a.get("balance", 0.0)) for a in settings.other_accounts)
 
     streams, revenue, rates, rec_events, tax_events = [], None, [], [], []
+    profiles, future, plan_events = None, [], []
+    if invoices is not None and not quality.inactive:
+        profiles = build_profiles(ops_p, as_of, context.industry_delays)
+        future = [f for f in (fit_future_invoices(ops_p, as_of, horizon, profiles, d) for d in (1, -1)) if f]
+        plan_events = invoice_events(invoices, profiles, as_of, horizon) + contract_events(ops_p, as_of, horizon)
+    handled = {f.direction for f in future}                    # потоки, которые теперь ведут счета
+    exclude = {1: frozenset(CLIENT_CATEGORIES[:1]) if 1 in handled else frozenset(),
+               -1: frozenset(SUPPLIER_CATEGORIES) if -1 in handled else frozenset()}
     if not quality.inactive:
         streams = detect_streams(ops_p, as_of)
         if not settings.include_owner_withdrawals:
@@ -88,13 +108,15 @@ def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None
         tax_events = forecast_enp(ops_p, as_of, horizon, context.enp_index)
         revenue = fit_revenue(ops_p, as_of, horizon, quality.gaps, context.industry_season, revenue_method)
         rates = [m for m in (fit_rates(ops_p, as_of, horizon, direction, streams, quality.gaps,
-                                       context.industry_season) for direction in (1, -1)) if m is not None]
-    events = sorted(rec_events + tax_events + planned, key=lambda e: (e.date or as_of, e.id))
+                                       context.industry_season, exclude[direction])
+                             for direction in (1, -1)) if m is not None]
+    events = sorted(rec_events + tax_events + planned + plan_events, key=lambda e: (e.date or as_of, e.id))
     return Model(
         ops=ops_p, quality=quality, as_of=as_of, horizon=horizon, settings=settings,
         seed=stable_seed(ops_p, as_of) if seed is None else seed, context=context,
         dates=[as_of + timedelta(days=i) for i in range(1, horizon + 1)], start_balance=start_balance,
-        streams=streams, events=events, planned=planned, revenue=revenue, rates=rates,
+        streams=streams, events=events, planned=planned, revenue=revenue, rates=rates, invoices=invoices,
+        profiles=profiles, future=future,
     )
 
 
@@ -150,7 +172,7 @@ def evaluate(model: Model, n_paths: int = 1000, shocks: list | None = None,
     used = [name for name, on in (("recurring", [e for e in events if e.source == "recurring"]),
                                   ("taxes", [e for e in events if e.source == "tax_calendar"]),
                                   ("revenue", model.revenue), ("rates", model.rates),
-                                  ("plan", model.planned)) if on]
+                                  ("plan", model.planned), ("invoices", model.future or model.invoices)) if on]
     return ForecastResult(
         as_of=as_of, horizon=model.horizon, start_balance=model.start_balance,
         threshold=model.settings.effective_threshold, dates=model.dates, p10=p10, p50=p50, p90=p90,

@@ -17,6 +17,7 @@ from app.engine.enrich import enrich
 from app.engine.model import Model
 from app.engine.pipeline import Prepared, build_model, evaluate
 from app.engine.quality import QualityReport, run_quality
+from app.engine.receivables import Invoice, build_profiles, receivables_summary
 from app.engine.types import ForecastResult, PlannedEvent, Settings
 
 
@@ -60,10 +61,18 @@ class EngineState:
                        memory=learn_memory(ops), as_of=as_of)
 
     def model(self, planned: list[PlannedEvent] | None = None, horizon: int | None = None,
-              seed: int | None = None) -> Model:
+              seed: int | None = None, invoices: list[Invoice] | None = None) -> Model:
+        """Модель для симуляций. `invoices` — открытые счета из учётной системы/CSV (None — источник не подключён)."""
         return build_model(None, self.as_of, self.settings, planned, horizon, seed, self.user_rules, self.context,
-                           Prepared(self.ops, self.quality))
+                           Prepared(self.ops, self.quality), invoices=invoices)
 
     def forecast(self, planned: list[PlannedEvent] | None = None, horizon: int | None = None, n_paths: int = 1000,
-                 seed: int | None = None, with_recommendations: bool = True) -> ForecastResult:
-        return evaluate(self.model(planned, horizon, seed), n_paths, with_recommendations=with_recommendations)
+                 seed: int | None = None, with_recommendations: bool = True,
+                 invoices: list[Invoice] | None = None) -> ForecastResult:
+        return evaluate(self.model(planned, horizon, seed, invoices), n_paths,
+                        with_recommendations=with_recommendations)
+
+    def receivables(self, invoices: list[Invoice], direction: str = "in") -> list[dict]:
+        """«Вам должны» (in) и «Вы должны» (out): открытые счета по контрагентам с обычной задержкой."""
+        profiles = build_profiles(self.ops, self.as_of, self.context.industry_delays)
+        return receivables_summary(invoices, profiles, self.as_of, direction)

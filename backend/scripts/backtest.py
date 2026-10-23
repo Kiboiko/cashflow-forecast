@@ -29,6 +29,7 @@ from app.engine.backtest import (
     SEASONAL_NAIVE,
     STRUCTURAL,
     STRUCTURAL_CAL,
+    STRUCTURAL_EXT,
     STRUCTURAL_M0,
     YELLOW_PROB,
     detection_metrics,
@@ -38,8 +39,10 @@ from app.engine.backtest import (
 from app.engine.calibration import CALIBRATION_PATH, apply_platt, fit_platt
 from app.engine.categorize import categorize
 from app.engine.context import Context, compute_industry_season
+from app.engine.enrich import enrich
 from app.engine.io import load_companies, load_operations
 from app.engine.normalize import normalize
+from app.engine.receivables import industry_profiles
 from app.engine.taxes import compute_enp_index
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -48,7 +51,8 @@ TEST = [date(2026, 3, 31), date(2026, 4, 30), date(2026, 5, 31), date(2026, 6, 3
         date(2026, 8, 31)]
 TITLES = {NAIVE: "Наивный (остаток не меняется)", SEASONAL_NAIVE: "Сезонно-наивный (потоки прошлых недель)",
           STRUCTURAL_M0: "Структурный, выручка M0", STRUCTURAL: "Структурный, выручка M1",
-          STRUCTURAL_CAL: "Структурный + калибровка шанса"}
+          STRUCTURAL_CAL: "Структурный + калибровка шанса",
+          STRUCTURAL_EXT: "+ внешние данные (демо-учётная система)"}
 DEMO_POINTS = {("C064", date(2026, 7, 31)), ("C103", date(2026, 7, 31)), ("C107", date(2026, 7, 31))}
 
 
@@ -65,14 +69,16 @@ def add_calibrated(points: list[dict], tune_set: set[str], eps: float = 1e-3) ->
 
 def build_contexts(ops_all: pd.DataFrame, companies: pd.DataFrame, cutoffs: list[date]) -> dict:
     """{компания: {отсечка: Context}} на данных ≤ отсечки (отраслевая сезонность, индекс ЕНП)."""
-    cat = categorize(ops_all)
+    cat = enrich(categorize(ops_all))
     industry = companies.set_index("company_id")["industry"]
     out: dict[str, dict] = {c: {} for c in companies["company_id"]}
     for cutoff in cutoffs:
         seasons = compute_industry_season(cat, companies, cutoff)
         enp = compute_enp_index(cat, cutoff)
+        delays = industry_profiles(cat, companies, cutoff)
         for cid in out:
-            out[cid][cutoff] = Context(industry_season=seasons.get(industry.get(cid)), enp_index=enp)
+            out[cid][cutoff] = Context(industry_season=seasons.get(industry.get(cid)), enp_index=enp,
+                                       industry_delays=delays.get(industry.get(cid)))
     return out
 
 
@@ -121,6 +127,23 @@ def flows_wape(points: list[dict]) -> dict:
     return out
 
 
+def external_ablation(points: list[dict]) -> dict:
+    """«+внешние данные»: прирост качества там, где у бизнеса есть документы (иначе источнику нечего добавить)."""
+    with_docs = [p for p in points if p.get("has_docs")]
+    agg = aggregate(with_docs) if with_docs else {}
+    flows = {}
+    for group in ("client_in", "suppliers"):
+        actual = np.array([p["flows"]["actual"][group] for p in with_docs])
+        if not len(actual) or actual.sum() <= 0:
+            continue
+        predicted = {STRUCTURAL: np.array([p["flows"]["predicted"][group] for p in with_docs]),
+                     STRUCTURAL_EXT: np.array([p["flows_external"][group] for p in with_docs])}
+        flows[group] = {name: {"wape": float(np.abs(pred - actual).sum() / actual.sum()),
+                               "bias": float(pred.sum() / actual.sum() - 1)} for name, pred in predicted.items()}
+    return {"n_points": len(with_docs), "share_of_points": len(with_docs) / len(points) if points else 0.0,
+            "approaches": {k: agg[k] for k in (STRUCTURAL, STRUCTURAL_EXT)} if agg else {}, "flows_wape": flows}
+
+
 def by_industry(points: list[dict], industry: dict[str, str]) -> dict:
     rows = {}
     for p in points:
@@ -129,6 +152,7 @@ def by_industry(points: list[dict], industry: dict[str, str]) -> dict:
 
 
 def markdown(report: dict) -> str:
+    test_report = report["test"]
     test = report["test"]["approaches"]
     lines = [f"# Бэктест: сравнение подходов ({report['generated']})", "",
              f"Тест: отсечки {report['cutoffs']['test'][0]} … {report['cutoffs']['test'][-1]}, "
@@ -141,7 +165,7 @@ def markdown(report: dict) -> str:
     def fmt(v, pct=False):
         return "—" if v is None else (f"{v:.0%}" if pct else f"{v:.2f}")
 
-    for name in (NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL):
+    for name in (NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL, STRUCTURAL_EXT):
         m = test[name]["horizons"]["30"]
         d = m["detection"]
         lead = m["lead_days_median"]
@@ -165,8 +189,29 @@ def markdown(report: dict) -> str:
     levels = (f"Уровни риска: жёлтый (шанс ≥{YELLOW_PROB:.0%}) — precision {fmt(yellow['precision'], True)}, "
               f"recall {fmt(yellow['recall'], True)}; красный (шанс ≥{RED_PROB:.0%}) — "
               f"precision {fmt(red['precision'], True)}, recall {fmt(red['recall'], True)}.")
-    lines += ["", summary, "", levels, "", "![Сравнение подходов](figures/approaches.png)", "",
-              "![Надёжность вероятностей](figures/reliability.png)"]
+    ablation = test_report["external_ablation"]
+    lines += ["", summary, "", levels, ""]
+    if ablation["approaches"]:
+        lines += ["## Что дают внешние данные (счета и договоры из учётной системы)", "",
+                  f"Там, где у бизнеса есть документы: {ablation['n_points']} точек "
+                  f"({ablation['share_of_points']:.0%} теста). Демо-учётная система восстановлена из выписки: "
+                  "модель видит номер, дату и сумму документа, но не дату оплаты.", "",
+                  "| Подход | rel-MAE | Покрытие P10–P90 | ROC-AUC | Precision | Recall |", "|---|---|---|---|---|---|"]
+        for name in (STRUCTURAL, STRUCTURAL_EXT):
+            m = ablation["approaches"][name]["horizons"]["30"]
+            d = m["detection"]
+            lines.append(f"| {TITLES[name]} | {m['rel_mae_median']:.3f} | {fmt(m['interval_coverage'], True)} | "
+                         f"{fmt(d['roc_auc'])} | {fmt(d['precision'], True)} | {fmt(d['recall'], True)} |")
+        flows = ablation["flows_wape"]
+        if flows:
+            lines += ["", "Ошибка прогноза 30-дневных сумм (WAPE, меньше — лучше):", "",
+                      "| Поток | Без внешних данных | С внешними данными |", "|---|---|---|"]
+            names = {"client_in": "Оплаты клиентов", "suppliers": "Оплаты поставщикам"}
+            for group, by_approach in flows.items():
+                lines.append(f"| {names[group]} | {by_approach[STRUCTURAL]['wape']:.3f} | "
+                             f"{by_approach[STRUCTURAL_EXT]['wape']:.3f} |")
+        lines.append("")
+    lines += ["![Сравнение подходов](figures/approaches.png)", "", "![Надёжность вероятностей](figures/reliability.png)"]
     return "\n".join(lines) + "\n"
 
 
@@ -186,7 +231,7 @@ def draw_figures(report: dict, points_test: list[dict], demo: list[dict], out: P
                               "Доля пойманных разрывов (recall)"), strict=True):
         vals = [(test[n]["horizons"]["30"][key] if key == "rel_mae_median"
                  else test[n]["horizons"]["30"]["detection"][key]) or 0 for n in names]
-        a.bar(labels, vals, color=["#9aa5b1", "#7b8794", "#4f9fd6", "#1f6fb2", "#0f4c81"])
+        a.bar(labels, vals, color=["#9aa5b1", "#7b8794", "#4f9fd6", "#1f6fb2", "#0f4c81", "#2a9d8f"])
         a.tick_params(axis="x", labelsize=7)
         a.set_title(title, fontsize=10)
         for i, v in enumerate(vals):
@@ -277,6 +322,7 @@ def main() -> None:
         "tune": {"n_points": len(tune), "approaches": aggregate(tune) if tune else {},
                  "flows_wape_30d": flows_wape(tune) if tune else {}},
         "test": {"n_points": len(test), "approaches": aggregate(test), "by_industry": by_industry(test, industry),
+                 "external_ablation": external_ablation(test),
                  "flows_wape_30d": flows_wape(test),
                  "reliability_30d": reliability(np.array([p["rows"][STRUCTURAL]["gap"][30] for p in test]),
                                                 np.array([p["y"][30] for p in test])),
