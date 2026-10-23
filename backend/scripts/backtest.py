@@ -222,10 +222,10 @@ def draw_figures(report: dict, points_test: list[dict], demo: list[dict], out: P
     import matplotlib.pyplot as plt
 
     out.mkdir(parents=True, exist_ok=True)
-    names = [NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL]
-    labels = ["Наивный", "Сезонно-\nнаивный", "Структурный\n(M0)", "Структурный\n(M1)", "Структурный\n+ калибровка"]
+    names = [NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL, STRUCTURAL_EXT]
+    labels = ["Наивный", "Сезонно-\nнаивный", "Структ.\n(M0)", "Структ.\n(M1)", "Структ.\n+калибр.", "+ внешние\nданные"]
     test = report["test"]["approaches"]
-    fig, ax = plt.subplots(1, 3, figsize=(13, 3.8))
+    fig, ax = plt.subplots(1, 3, figsize=(14, 3.8))
     for a, key, title in zip(ax, ("rel_mae_median", "roc_auc", "recall"),
                              ("Ошибка остатка на 30 дней (меньше — лучше)", "ROC-AUC обнаружения разрыва",
                               "Доля пойманных разрывов (recall)"), strict=True):
