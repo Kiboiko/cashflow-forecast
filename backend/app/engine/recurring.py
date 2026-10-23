@@ -241,6 +241,7 @@ def expand_streams(streams: list[RecurringStream], as_of: date, horizon: int = 3
                 p_within_horizon=min(0.99, 0.5 + 0.5 * s.confidence), amount_cv=s.amount_cv,
                 category=s.category, title=_title(s), source="recurring", mandatory=s.mandatory,
                 counterparty=s.counterparty, explain=explain,
+                counterparty_inn=None if s.category == "salary" else s.key.split(":", 1)[1],
             ))
     return sorted(events, key=lambda e: (e.date, e.id))
 

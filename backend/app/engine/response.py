@@ -2,8 +2,16 @@
 from __future__ import annotations
 
 from app.engine.calendar_ru import is_workday
+from app.engine.scenarios import scenario_delta, scenario_summary
 from app.engine.types import ForecastResult, PlannedEvent
-from app.schemas import DailyPoint, ForecastEvent, ForecastResponse, ModelInfo
+from app.schemas import (
+    DailyPoint,
+    ForecastEvent,
+    ForecastResponse,
+    ModelInfo,
+    ScenarioForecast,
+    ScenarioResponse,
+)
 
 _SOURCES = {"recurring", "tax_calendar", "invoice", "contract", "contract_detected", "manual", "csv", "1c",
             "demo_accounting", "bank_mock", "revenue", "rates"}
@@ -18,14 +26,26 @@ def _event(e: PlannedEvent) -> ForecastEvent:
     )
 
 
-def to_response(result: ForecastResult, business_id: str) -> ForecastResponse:
-    daily = [
+def _daily(result: ForecastResult) -> list[DailyPoint]:
+    return [
         DailyPoint(date=d, working_day=is_workday(d), p10=round(float(result.p10[i]), 2),
                    p50=round(float(result.p50[i]), 2), p90=round(float(result.p90[i]), 2),
                    inflow_p50=round(float(result.inflow_p50[i]), 2), outflow_p50=round(float(result.outflow_p50[i]), 2),
                    prob_below=round(float(result.prob_below[i]), 3))
         for i, d in enumerate(result.dates)
     ]
+
+
+def to_scenario_response(base: ForecastResult, scenario: ForecastResult, shocks: list) -> ScenarioResponse:
+    return ScenarioResponse(
+        base=ScenarioForecast(daily=_daily(base), risk=base.risk),
+        scenario=ScenarioForecast(daily=_daily(scenario), risk=scenario.risk),
+        delta=scenario_delta(base, scenario), summary=scenario_summary(shocks, base, scenario),
+    )
+
+
+def to_response(result: ForecastResult, business_id: str) -> ForecastResponse:
+    daily = _daily(result)
     return ForecastResponse(
         business_id=business_id, as_of=result.as_of, horizon_days=result.horizon,
         start_balance=round(result.start_balance, 2), threshold=result.threshold, daily=daily,

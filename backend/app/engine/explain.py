@@ -35,10 +35,17 @@ def dm(d: date) -> str:
     return f"{d.day} {_GEN[d.month - 1]}"
 
 
-def plural_raz(n: int) -> str:
+def plural(n: int, one: str, few: str, many: str) -> str:
+    """Русское склонение числительного: 1 день, 2 дня, 5 дней, 11 дней, 21 день."""
+    if n % 10 == 1 and n % 100 != 11:
+        return one
     if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
-        return "раза"
-    return "раз"
+        return few
+    return many
+
+
+def plural_raz(n: int) -> str:
+    return plural(n, "раз", "раза", "раз")
 
 
 # «не хватит на …»: винительный падеж по категории; для остальных — название платежа строчными

@@ -94,3 +94,4 @@ class PlannedEvent:                 # регулярный платёж, счё�
     mandatory: bool = False
     counterparty: str | None = None
     explain: str = ""
+    counterparty_inn: str | None = None   # ИНН/ключ контрагента: нужен сценарию «клиент задержит оплату»

@@ -8,7 +8,7 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import numpy as np
@@ -32,6 +32,7 @@ class RatesModel:
     weekly_sums: np.ndarray          # исторические недельные суммы (≥0)
     share: np.ndarray                # доля недельной суммы на каждый день горизонта
     weeks_used: int
+    category_share: dict[str, float] = field(default_factory=dict)   # доля категории в потоке (для шоков)
 
     @property
     def key(self) -> str:
@@ -73,7 +74,7 @@ def fit_rates(ops: pd.DataFrame, as_of: date, horizon: int, direction: int,
     bad = [(pd.Timestamp(g.start_date - timedelta(days=3)), pd.Timestamp(g.end_date + timedelta(days=3)))
            for g in gaps or []]
 
-    sums, profile = [], np.zeros(7)
+    sums, profile, by_category = [], np.zeros(7), {}
     for k in range(WEEKS):
         lo, hi = _block_edges(as_of, k)
         if lo < first_op - pd.Timedelta(days=1) or any(lo < b_hi and hi > b_lo for b_lo, b_hi in bad):
@@ -81,6 +82,8 @@ def fit_rates(ops: pd.DataFrame, as_of: date, horizon: int, direction: int,
         block = hist[(hist["date"] > lo) & (hist["date"] <= hi)]
         sums.append(float(block["amount"].sum()))
         np.add.at(profile, block["date"].dt.day_of_week.values, block["amount"].values)
+        for cat, amount in block.groupby("category")["amount"].sum().items():
+            by_category[cat] = by_category.get(cat, 0.0) + float(amount)
     weekly = np.array(sums)                                  # нулевые недели — тоже исход, не отбрасываем
     if len(weekly) < MIN_WEEKS or weekly.sum() <= 0 or profile.sum() <= 0:
         return None
@@ -99,4 +102,5 @@ def fit_rates(ops: pd.DataFrame, as_of: date, horizon: int, direction: int,
     if season and season.get(as_of.month, 0) > 0:
         share *= np.array([np.clip(season.get(d.month, season[as_of.month]) / season[as_of.month], *SEASON_CLIP)
                            for d in dates])
-    return RatesModel(direction, dates, weekly, share, len(sums))
+    total = sum(by_category.values())
+    return RatesModel(direction, dates, weekly, share, len(sums), {c: v / total for c, v in by_category.items()})
