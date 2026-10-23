@@ -18,7 +18,7 @@ AS_OF = date(2026, 7, 31)
 
 
 def stats(level="red", p=0.64, gap=date(2026, 8, 25), p50=240_000.0, p90=410_000.0) -> RiskStats:
-    return RiskStats(level=level, gap_probability=p, prob_below=np.zeros(30), possible_gap_date=gap,
+    return RiskStats(level=level, gap_probability=p, gap_probability_raw=p, prob_below=np.zeros(30), possible_gap_date=gap,
                      likely_gap_date=gap, peak_date=gap, shortfall_p50=p50, shortfall_p90=p90, safe_buffer=p90,
                      min_p50=312_000.0, min_p50_date=date(2026, 8, 20))
 

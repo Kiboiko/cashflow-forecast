@@ -7,7 +7,7 @@ from app.engine.categorize import categorize
 from app.engine.enrich import enrich
 from app.engine.quality import run_quality
 from app.engine.taxes import DEFAULT_ENP_INDEX, compute_enp_index, forecast_enp, tax_debt_flag
-from tests.helpers import RAW_DIR, make_statement, monthly, needs_dataset, op
+from tests.helpers import RAW_DIR, make_statement, merge, monthly, needs_dataset, op
 
 ENP = "Единый налоговый платеж"
 TREASURY = {"inn": "0001", "name": "Казначейство России (ФНС России)"}
@@ -47,6 +47,20 @@ def test_without_year_ago_uses_seasonality_index():
     truth = 100_000.0 * DEFAULT_ENP_INDEX[10]
     assert truth * 0.85 <= events[0].amount <= truth * 1.15
     assert "авансовый платёж" in events[0].explain
+
+
+def test_tax_follows_revenue_growth_through_the_revenue_ratio():
+    """Выручка растёт на 6% в месяц, налог — 10% выручки за 3 предыдущих месяца: оценка должна расти вместе с ней."""
+    revenue = {pd.Period("2024-10", "M") + k: 1_000_000.0 * 1.06 ** k for k in range(24)}
+    days = monthly("2024-10", 24, 28, "next",
+                   lambda p: 0.1 * sum(revenue[p - j] for j in (1, 2, 3) if (p - j) in revenue), ENP, **TREASURY)
+    days = merge(days, monthly("2024-10", 24, 14, "next", lambda p: revenue[p],
+                               "Оплата по счету № 1 от 01.01.2025", inn="0044", sign=1))
+    as_of = date(2026, 9, 30)
+    events = forecast_enp(prepare(days, as_of), as_of, 30)
+    assert len(events) == 1
+    truth = 0.1 * sum(1_000_000.0 * 1.06 ** (23 - j) for j in (0, 1, 2))      # налог октября = 10% от июля–сентября
+    assert events[0].amount == pytest.approx(truth, rel=0.12)
 
 
 def test_no_enp_history_gives_no_events():

@@ -10,11 +10,10 @@ from datetime import date
 
 import pandas as pd
 
-from app.engine.categorize.taxonomy import TAXONOMY
+from app.engine.categorize.taxonomy import REVENUE_CATEGORIES
 from app.engine.taxes import compute_enp_index
 
 MIN_MONTHS = 12
-REVENUE_CATEGORIES = frozenset(c.code for c in TAXONOMY.values() if c.group == "выручка")
 
 
 @dataclass

@@ -9,6 +9,7 @@ from datetime import date
 
 import numpy as np
 
+from app.engine.calibration import calibrate
 from app.engine.simulate import Simulation
 from app.engine.types import PlannedEvent, Settings
 from app.schemas import MandatoryCoverage
@@ -21,7 +22,8 @@ RED_IF_WITHIN_DAYS = 7
 @dataclass
 class RiskStats:
     level: str                               # green | yellow | red
-    gap_probability: float
+    gap_probability: float                   # откалиброванный шанс разрыва (см. calibration.py)
+    gap_probability_raw: float               # доля сценариев с разрывом
     prob_below: np.ndarray
     possible_gap_date: date | None
     likely_gap_date: date | None
@@ -53,11 +55,14 @@ def mandatory_coverage(sim: Simulation, events: list[PlannedEvent], threshold: f
     return out
 
 
-def assess_risk(sim: Simulation, as_of: date, settings: Settings, events: list[PlannedEvent]) -> RiskStats:
+def assess_risk(sim: Simulation, as_of: date, settings: Settings, events: list[PlannedEvent],
+                calibrated: bool = True) -> RiskStats:
+    """`calibrated=False` — сырая доля сценариев (для проверки арифметики и бэктеста)."""
     threshold = settings.effective_threshold
     below = sim.balance < threshold
     prob_below = below.mean(axis=0)
-    gap_probability = float(below.any(axis=1).mean())
+    gap_raw = float(below.any(axis=1).mean())
+    gap_probability = calibrate(gap_raw) if calibrated else gap_raw
     shortfall = np.maximum(threshold - sim.balance, 0).max(axis=1)       # нехватка сценария
     has_gap = shortfall > 0
     p50 = float(np.median(shortfall[has_gap])) if has_gap.any() else 0.0
@@ -74,7 +79,7 @@ def assess_risk(sim: Simulation, as_of: date, settings: Settings, events: list[P
     median_path = np.median(sim.balance, axis=0)
     i_min = int(np.argmin(median_path))
     return RiskStats(
-        level=level, gap_probability=gap_probability, prob_below=prob_below, possible_gap_date=possible,
+        level=level, gap_probability=gap_probability, gap_probability_raw=gap_raw, prob_below=prob_below, possible_gap_date=possible,
         likely_gap_date=likely, peak_date=sim.dates[int(np.argmax(prob_below))], shortfall_p50=p50,
         shortfall_p90=p90, safe_buffer=buffer, min_p50=float(median_path[i_min]), min_p50_date=sim.dates[i_min],
         coverage=mandatory_coverage(sim, events, threshold), shortfall=shortfall,

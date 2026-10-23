@@ -84,7 +84,7 @@ def test_extra_flows_reuse_the_same_scenarios():
 # ---------- риск: игрушечные сценарии с известным ответом ----------
 def test_certain_gap_has_exact_probability_date_and_shortfall():
     sim = run(100_000.0, [event(10, 180_000.0, title="Зарплата")])
-    stats = assess_risk(sim, AS_OF, Settings(), [event(10, 180_000.0)])
+    stats = assess_risk(sim, AS_OF, Settings(), [event(10, 180_000.0)], calibrated=False)
     assert stats.level == "red"
     assert stats.gap_probability == 1.0
     assert stats.possible_gap_date == stats.likely_gap_date == DATES[9]
@@ -94,7 +94,7 @@ def test_certain_gap_has_exact_probability_date_and_shortfall():
 
 def test_no_gap_is_green_with_zero_shortfall():
     sim = run(500_000.0, [event(10, 180_000.0)])
-    stats = assess_risk(sim, AS_OF, Settings(), [event(10, 180_000.0)])
+    stats = assess_risk(sim, AS_OF, Settings(), [event(10, 180_000.0)], calibrated=False)
     assert (stats.level, stats.gap_probability, stats.shortfall_p50, stats.safe_buffer) == ("green", 0.0, 0.0, 0.0)
     assert stats.possible_gap_date is None and stats.coverage[0].covered_probability == 1.0
     assert stats.min_p50 == 320_000.0 and stats.min_p50_date == DATES[9]
@@ -103,32 +103,32 @@ def test_no_gap_is_green_with_zero_shortfall():
 def test_coin_flip_payment_gives_half_probability_and_yellow_or_red_by_thresholds():
     ev = event(10, 180_000.0, p=0.5)
     sim = run(100_000.0, [ev], n=20_000)
-    stats = assess_risk(sim, AS_OF, Settings(), [ev])
+    stats = assess_risk(sim, AS_OF, Settings(), [ev], calibrated=False)
     assert stats.gap_probability == pytest.approx(0.5, abs=0.02)
     assert stats.level == "red"
-    assert assess_risk(sim, AS_OF, Settings(risk_red=0.9), [ev]).level == "yellow"
-    assert assess_risk(sim, AS_OF, Settings(risk_red=0.9, risk_yellow=0.9), [ev]).level == "green"
+    assert assess_risk(sim, AS_OF, Settings(risk_red=0.9), [ev], calibrated=False).level == "yellow"
+    assert assess_risk(sim, AS_OF, Settings(risk_red=0.9, risk_yellow=0.9), [ev], calibrated=False).level == "green"
 
 
 def test_gap_within_a_week_is_red_even_if_probability_is_below_red_threshold():
     ev = event(3, 180_000.0, p=0.45)
     sim = run(100_000.0, [ev], n=20_000)
-    stats = assess_risk(sim, AS_OF, Settings(risk_red=0.9), [ev])
+    stats = assess_risk(sim, AS_OF, Settings(risk_red=0.9), [ev], calibrated=False)
     assert stats.likely_gap_date is None                 # шанс 0,45 < 0,5 — «вероятной» даты нет, уровень по порогам
     assert stats.level == "yellow"
     ev = event(3, 180_000.0, p=0.6)
-    stats = assess_risk(run(100_000.0, [ev], n=20_000), AS_OF, Settings(risk_red=0.9), [ev])
+    stats = assess_risk(run(100_000.0, [ev], n=20_000), AS_OF, Settings(risk_red=0.9), [ev], calibrated=False)
     assert stats.likely_gap_date == DATES[2] and stats.level == "red"
 
 
 def test_overdraft_limit_lowers_the_threshold():
     ev = event(10, 180_000.0)
     sim = run(100_000.0, [ev])
-    assert assess_risk(sim, AS_OF, Settings(overdraft_limit=100_000.0), [ev]).level == "green"
-    assert assess_risk(sim, AS_OF, Settings(threshold=50_000.0), [ev]).shortfall_p50 == 130_000.0
+    assert assess_risk(sim, AS_OF, Settings(overdraft_limit=100_000.0), [ev], calibrated=False).level == "green"
+    assert assess_risk(sim, AS_OF, Settings(threshold=50_000.0), [ev], calibrated=False).shortfall_p50 == 130_000.0
 
 
 def test_incoming_money_on_the_payment_day_counts_for_coverage():
     pay, income = event(10, 150_000.0), event(10, 100_000.0, direction=1, mandatory=False)
     sim = run(100_000.0, [pay, income])
-    assert assess_risk(sim, AS_OF, Settings(), [pay, income]).coverage[0].covered_probability == 1.0
+    assert assess_risk(sim, AS_OF, Settings(), [pay, income], calibrated=False).coverage[0].covered_probability == 1.0

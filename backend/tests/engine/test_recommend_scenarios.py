@@ -6,6 +6,7 @@ import pytest
 
 from app.engine.pipeline import build_model, evaluate, run_forecast, run_scenario
 from app.engine.response import to_scenario_response
+from app.engine.scenarios import largest_client
 from app.engine.types import Settings
 from app.schemas import (
     ClientDelayShock,
@@ -20,16 +21,23 @@ AS_OF = date(2026, 7, 31)
 
 
 def business(extra=None):
-    """Аренда 150 тыс. 5-го, зарплата 120 тыс. 25-го, поставщик 40 тыс. 12-го; клиент платит 270 тыс. 15-го."""
+    """Аренда 150 тыс. 5-го, зарплата 120 тыс. 25-го, поставщик 40 тыс. 12-го; платформа переводит 270 тыс. 15-го."""
     days = merge(
         monthly("2025-07", 13, 5, "next", 150_000.0, "Арендная плата за помещение", inn="0099"),
         monthly("2025-07", 13, 25, "prev", 120_000.0, "Выплата заработной платы за месяц", inn=None),
         monthly("2025-07", 13, 12, "next", 40_000.0, "Оплата рекламных услуг", inn="0055", name="ООО «Реклама»"),
-        monthly("2025-07", 13, 15, "next", 270_000.0, "Оплата по счету № 1 от 01.07.2025", inn="0044",
-                name="ООО «Клиент»", sign=1),
+        monthly("2025-07", 13, 15, "next", 270_000.0, "Вознаграждение по агентскому договору № 7", inn="0044",
+                name="ООО «Платформа»", sign=1),
         *(extra or []),
     )
     return days
+
+
+def weekly_client(weeks: int = 30, amount: float = 60_000.0) -> dict:
+    """Клиент «0066» платит по четвергам: нерегулярные оплаты идут в поток прочих приходов (rates)."""
+    monday = date(2026, 7, 27) - timedelta(days=7 * weeks)
+    return {monday + timedelta(days=7 * w + 3): [op(1, amount, "Оплата по счету № 5 от 01.07.2025", inn="0066",
+                                                   name="ООО «Клиент»")] for w in range(weeks)}
 
 
 def model(balance=200_000.0, settings=None, extra=None, planned=None):
@@ -121,19 +129,21 @@ def test_revenue_drop_does_not_increase_balance():
     assert scen.risk.gap_probability >= base.risk.gap_probability
 
 
-def test_client_delay_does_not_reduce_gap_probability_and_moves_the_client_payment():
+def test_client_delay_does_not_reduce_gap_probability_and_moves_a_regular_payment():
     m = model(balance=400_000.0)
     base, scen = run_scenario(m, [ClientDelayShock(type="client_delay", counterparty_inn="0044", delay_days=21)], 500)
     assert scen.risk.gap_probability >= base.risk.gap_probability
     assert (scen.p50 <= base.p50 + 1e-6).all()
-    client = next(e for e in scen.events if e.counterparty_inn == "0044")
-    assert client.date == next(e for e in base.events if e.counterparty_inn == "0044").date + timedelta(days=21)
+    payer = next(e for e in scen.events if e.counterparty_inn == "0044")
+    assert payer.date == next(e for e in base.events if e.counterparty_inn == "0044").date + timedelta(days=21)
 
 
-def test_largest_client_is_chosen_when_inn_is_not_given():
-    m = model(balance=400_000.0)
+def test_largest_client_is_chosen_and_its_payments_move_when_inn_is_not_given():
+    m = model(balance=400_000.0, extra=[weekly_client()])
+    assert largest_client(m) == "0066"
     base, scen = run_scenario(m, [ClientDelayShock(type="client_delay", delay_days=14)], 300)
     assert (scen.p50 <= base.p50 + 1e-6).all() and (scen.p50 < base.p50 - 1.0).any()
+    assert scen.p50[-1] < base.p50[-1]            # последние 14 дней оплат уезжают за горизонт
 
 
 def test_fixed_cost_increase_scales_selected_categories_only():

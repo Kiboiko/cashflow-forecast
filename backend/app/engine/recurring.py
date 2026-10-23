@@ -19,7 +19,7 @@ from app.engine.types import PlannedEvent, RecurringStream
 CANDIDATES: dict[str, int] = {
     "salary": -1, "rent": -1, "utilities": -1, "telecom_it": -1, "bank_fees": -1, "loan_repayment": -1,
     "leasing": -1, "services": -1, "contractors": -1, "marketing": -1, "owner_withdrawal": -1,
-    "revenue_agent": 1, "revenue_marketplace": 1, "client_payment": 1,
+    "revenue_agent": 1, "revenue_marketplace": 1,
 }
 SEASONAL_MONTHLY = {"utilities", "revenue_agent"}      # сумма месяца зависит от сезона (§6.6, §6.9)
 SHIFT_RULE = {"salary": "prev"}          # остальные платежи при выходном переносятся вперёд

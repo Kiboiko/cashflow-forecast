@@ -76,3 +76,5 @@ EXCLUDED_FROM_MODEL = frozenset(
 )
 
 UNKNOWN = frozenset({"unknown_in", "unknown_out"})
+
+REVENUE_CATEGORIES = frozenset(c.code for c in _ALL if c.group == "выручка")

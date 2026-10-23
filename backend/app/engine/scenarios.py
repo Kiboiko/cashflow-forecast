@@ -11,7 +11,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
-from app.engine.context import REVENUE_CATEGORIES
+from app.engine.categorize.taxonomy import REVENUE_CATEGORIES
 from app.engine.explain import dm, plural, rub
 from app.engine.model import Model
 from app.engine.rates import WEEKS

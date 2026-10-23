@@ -19,7 +19,7 @@ from app.engine.categorize.taxonomy import EXCLUDED_FROM_MODEL
 from app.engine.recurring import stream_keys
 from app.engine.types import RecurringStream
 
-WEEKS = 12
+WEEKS = 26
 MIN_WEEKS = 4
 HANDLED_ELSEWHERE = {"tax_enp", "revenue_card", "revenue_sbp", "revenue_cash"}
 SEASON_CLIP = (0.1, 10.0)

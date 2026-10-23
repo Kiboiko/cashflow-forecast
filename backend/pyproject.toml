@@ -16,6 +16,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    "matplotlib>=3.9",
 ]
 
 [tool.uv]
@@ -28,3 +29,6 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["ISC004", "PLC0206"]          # отчётные скрипты: форматирование текста важнее стиля

@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from app.engine.calendar_ru import nominal_date, shift
+from app.engine.categorize.taxonomy import REVENUE_CATEGORIES
 from app.engine.types import PlannedEvent
 
 ENP_DAY = 28
@@ -26,6 +27,9 @@ ADVANCE_MONTHS = (4, 7, 10)              # кварталы УСН: авансо
 ADVANCE_RATIO = 1.3
 GROWTH_CLIP = (0.5, 2.0)
 CV_CLIP = (0.1, 0.4)
+REVENUE_RATIO_MONTHS = 3                 # налог ~ доля от выручки за 3 завершённых месяца
+RATIO_HISTORY = 12
+RATIO_WEIGHT = 0.5                       # вес оценки «доля от выручки» в смеси с оценкой по году назад/индексу
 EVENT_PROBABILITY = 0.97
 ENFORCED = ["tax_enforced", "enforcement"]
 ENFORCED_LOOKBACK_DAYS = 90
@@ -54,6 +58,13 @@ def _monthly(enp: pd.DataFrame, as_of: date) -> tuple[pd.Series, pd.Series]:
     return by_month, complete.reindex(full_range, fill_value=0.0)
 
 
+def _monthly_revenue(ops: pd.DataFrame, as_of: date, last_complete: pd.Period) -> pd.Series:
+    """Выручка по завершённым месяцам (поступления от продаж и клиентов)."""
+    rev = ops[(ops["direction"] == 1) & ops["category"].isin(REVENUE_CATEGORIES) & (ops["date"] <= pd.Timestamp(as_of))]
+    monthly = rev.groupby(rev["date"].dt.to_period("M"))["amount"].sum()
+    return monthly[monthly.index <= last_complete]
+
+
 def compute_enp_index(ops: pd.DataFrame, as_of: date) -> dict[int, float]:
     """Индекс месяцев по всем компаниям на данных ≤ as_of: средняя доля месяца в среднемесячном ЕНП.
 
@@ -75,7 +86,29 @@ def _is_regular(index: dict[int, float], month: int) -> bool:
     return index[month] <= REGULAR_MAX
 
 
-def _estimate(cm: pd.Series, target: pd.Period, index: dict[int, float]) -> tuple[float, float, float]:
+def _revenue_ratio_estimate(cm: pd.Series, inflow: pd.Series | None, target: pd.Period,
+                            index: dict[int, float]) -> float | None:
+    """Налог ≈ медианная доля ЕНП от выручки за 3 предыдущих месяца × выручка за 3 последних завершённых месяца.
+
+    Доли берутся из месяцев того же типа (авансовые пики УСН или обычные) — так налог следует за ростом и сезоном выручки.
+    """
+    if inflow is None or inflow.empty:
+        return None
+    inflow = inflow.reindex(pd.period_range(inflow.index.min(), cm.index.max(), freq="M"), fill_value=0.0)
+    ratios = []
+    for p, tax in cm.items():
+        if tax <= 0 or _is_regular(index, p.month) != _is_regular(index, target.month):
+            continue
+        base = sum(float(inflow.get(p - k, 0.0)) for k in range(1, REVENUE_RATIO_MONTHS + 1))
+        if base > 0:
+            ratios.append(tax / base)
+    ratios = ratios[-RATIO_HISTORY:]
+    recent = float(inflow.tail(REVENUE_RATIO_MONTHS).sum())
+    return float(np.median(ratios)) * recent if len(ratios) >= 2 and recent > 0 else None
+
+
+def _estimate(cm: pd.Series, target: pd.Period, index: dict[int, float],
+              inflow: pd.Series | None = None) -> tuple[float, float, float]:
     """(оценка суммы месяца, CV, «типичный» обычный месяц) по завершённым месяцам компании."""
     positive = cm[cm > 0]
     regular = positive[[_is_regular(index, p.month) for p in positive.index]]
@@ -94,6 +127,10 @@ def _estimate(cm: pd.Series, target: pd.Period, index: dict[int, float]) -> tupl
     else:
         estimate = typical * index[target.month] / scale
 
+    ratio = _revenue_ratio_estimate(cm, inflow, target, index)
+    if ratio is not None:
+        estimate = (1 - RATIO_WEIGHT) * estimate + RATIO_WEIGHT * ratio
+
     series = positive.tail(12)
     normalized = series.values / np.array([index[p.month] for p in series.index])
     cv = float(np.clip(normalized.std() / normalized.mean(), *CV_CLIP)) if len(series) >= 3 else 0.3
@@ -108,13 +145,14 @@ def forecast_enp(ops: pd.DataFrame, as_of: date, horizon: int = 30,
     by_month, cm = _monthly(enp, as_of)
     if cm.empty or (cm > 0).sum() < 2:
         return []
+    inflow = _monthly_revenue(ops, as_of, cm.index.max())
     end = as_of + timedelta(days=horizon)
     events = []
     for p in pd.period_range(pd.Period(as_of, "M"), pd.Period(end, "M"), freq="M"):
         d = shift(nominal_date(p.year, p.month, ENP_DAY), "next")
         if not as_of < d <= end:
             continue
-        estimate, cv, typical = _estimate(cm, p, index)
+        estimate, cv, typical = _estimate(cm, p, index, inflow)
         remaining = estimate - float(by_month.get(p, 0.0))        # часть месяца могла быть уплачена
         if remaining < 0.1 * estimate:
             continue
