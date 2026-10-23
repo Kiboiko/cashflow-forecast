@@ -17,10 +17,18 @@ from app.engine.categorize.rules import apply_name_rules, apply_purpose_rules
 CATEGORY_COLUMNS = ["category", "category_source", "category_confidence"]
 
 
-def categorize(ops: pd.DataFrame, user_rules: dict[str, str] | None = None) -> pd.DataFrame:
+def learn_memory(categorized: pd.DataFrame) -> pd.DataFrame:
+    """Память контрагентов из операций, размеченных правилами по назначению (для инкрементальной категоризации)."""
+    return build_memory(categorized, categorized["category_source"] == "rule")
+
+
+def categorize(ops: pd.DataFrame, user_rules: dict[str, str] | None = None,
+               memory: pd.DataFrame | None = None) -> pd.DataFrame:
     """Добавляет category, category_source (user|rule|name_rule|memory|unknown), category_confidence.
 
     `user_rules`: {cp_key: category} — исправления предпринимателя (CounterpartyRule).
+    `memory`: готовая память контрагентов (из `learn_memory`); без неё память строится из самих `ops`.
+    Так обновление данных категоризирует только новые операции, не трогая историю.
     """
     out = ops.copy()
     out["category"] = None
@@ -43,7 +51,8 @@ def categorize(ops: pd.DataFrame, user_rules: dict[str, str] | None = None) -> p
     cat, _ = apply_name_rules(out, todo)
     take(cat, "name_rule", 0.9)
 
-    memory = build_memory(out, out["category_source"] == "rule")
+    if memory is None:
+        memory = learn_memory(out)
     cat, conf = apply_memory(out, memory, todo)
     take(cat, "memory", conf)
 

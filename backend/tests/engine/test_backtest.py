@@ -6,8 +6,17 @@ import pandas as pd
 import pytest
 
 from app.engine.backtest import (
-    actual_flows, build_truth, coverage, detection_metrics, eligible, flow_group, naive_paths, reliability,
-    rel_mae, seasonal_naive_paths, summarize,
+    actual_flows,
+    build_truth,
+    coverage,
+    detection_metrics,
+    eligible,
+    flow_group,
+    naive_paths,
+    rel_mae,
+    reliability,
+    seasonal_naive_paths,
+    summarize,
 )
 from app.engine.categorize import categorize
 from app.engine.enrich import enrich
