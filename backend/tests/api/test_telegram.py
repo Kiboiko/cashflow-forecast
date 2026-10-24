@@ -9,6 +9,7 @@ import pytest
 
 from app.db.models import Alert, Business, User
 from app.integrations.telegram import TelegramClient, telegram_text
+from app.logging_setup import mask, setup_logging
 from app.services import notify
 from tests.api.conftest import auth_headers, build_env, make_user
 
@@ -63,7 +64,14 @@ def test_gap_risk_text_keeps_only_the_date():
 
 
 # ---------- клиент ----------
+def test_bot_token_is_masked_in_any_log_line():
+    line = f"HTTP Request: POST https://api.telegram.org/bot{TOKEN}/sendMessage \"HTTP/1.1 200 OK\""
+    masked = mask(line)
+    assert TOKEN not in masked and "SECRET" not in masked and "/bot***/sendMessage" in masked
+
+
 def test_client_posts_to_the_bot_api_and_logs_no_secrets(caplog):
+    setup_logging()                       # как в работающем сервисе: уровень INFO, httpx пишет адрес запроса с токеном
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -76,10 +84,13 @@ def test_client_posts_to_the_bot_api_and_logs_no_secrets(caplog):
     assert request.url.host == "api.telegram.org" and request.url.path == f"/bot{TOKEN}/sendMessage"
     assert json.loads(request.content) == {"chat_id": "777", "text": "Тайный текст", "disable_web_page_preview": True}
     logged = " ".join(f"{r.getMessage()} {getattr(r, 'fields', '')}" for r in caplog.records)
-    assert caplog.records and not any(secret in logged for secret in ("777", "Тайный", TOKEN, "SECRET"))
+    assert not any(secret in logged for secret in ("777", "Тайный", TOKEN, "SECRET"))
+    assert {r.name for r in caplog.records} == {"kassa.telegram"}      # httpx со своим адресом запроса молчит
 
 
 def test_client_does_not_raise_on_refusal_or_network_errors(caplog):
+    setup_logging()
+
     def refused(request: httpx.Request) -> httpx.Response:
         return httpx.Response(403, json={"ok": False, "description": "bot was blocked by the user"})
 
