@@ -122,12 +122,10 @@ def build_env(crunch: bool = False, data_as_of: str | None = None) -> Iterator[E
                                files={"file": ("statement.csv", csv, "text/csv")})
         assert response.status_code == 200, response.text
         env = Env(app, client, headers, "C064", db, csv, response.json())
-        if data_as_of:                                    # как у демо-персон: выписка целиком, видна до даты
-            from datetime import date
-            business = db.get(Business, "C064")
-            business.data_as_of = date.fromisoformat(data_as_of)
-            business.data_version += 1
-            db.commit()
+        if data_as_of:                                    # как у демо-персон: выписка целиком, видна до даты (штатный сброс)
+            reset = client.post("/api/v1/demo/businesses/C064/replay/reset", headers=headers, json={"as_of": data_as_of})
+            assert reset.status_code == 200, reset.text
+            db.expire_all()
         yield env
     db.close()
 
