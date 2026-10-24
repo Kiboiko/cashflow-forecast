@@ -112,6 +112,21 @@ def test_user_rule_wins_over_purpose_rules():
     assert out["category_source"].iloc[0] == "user"
 
 
+def test_user_rule_applies_only_in_the_direction_of_its_category():
+    ops = make_statement({date(2026, 3, 2): [op(-1, 100.0, "Оплата по счету № 3", inn="0042")],
+                          date(2026, 3, 3): [op(1, 100.0, "Возврат платежа: ошибочно перечислено", inn="0042")]})
+    out = categorize(ops, user_rules={"0042": "suppliers"}).set_index("direction")
+    assert (out.at[-1, "category"], out.at[-1, "category_source"]) == ("suppliers", "user")
+    assert (out.at[1, "category"], out.at[1, "category_source"]) == ("refund_in", "rule")    # возврат — не «Поставщики»
+
+
+def test_every_taxonomy_category_has_a_direction():
+    from app.engine.categorize.taxonomy import category_direction
+
+    assert {category_direction(c) for c in TAXONOMY} == {1, -1} and category_direction("custom") is None
+    assert category_direction("client_payment") == 1 and category_direction("owner_withdrawal") == -1
+
+
 def test_memory_fills_empty_purpose_for_unambiguous_counterparty():
     days = {date(2026, 3, 2 + i): [op(-1, 100.0, "Оплата по счету за доставку воды", inn="0077")] for i in range(3)}
     days[date(2026, 3, 9)] = [op(-1, 100.0, "", inn="0077")]

@@ -179,6 +179,21 @@ def test_invoices_from_csv_frame():
     assert b.due_date == date(2026, 8, 10) and b.counterparty_inn is None and b.direction == "out"
 
 
+def test_invoices_csv_with_russian_dates_comma_amounts_and_leading_zero_inn(tmp_path):
+    from app.engine.io import load_invoices
+
+    path = tmp_path / "invoices.csv"
+    path.write_text("doc_type;doc_no;doc_date;direction;counterparty_inn;counterparty_name;amount;due_date\n"
+                    "upd;45;05.08.2026;in;0044123456;ООО «Клиент»;150 000,50;\n"
+                    "invoice;A7;2026-07-03;out;;;9000;12.08.2026\n", encoding="utf-8-sig")
+    a, b = invoices_from_frame(load_invoices(path))
+    assert a.doc_date == date(2026, 8, 5) and a.amount == 150_000.5 and a.counterparty_inn == "0044123456"
+    assert a.due_date is None and b.counterparty_inn is None and b.counterparty_name is None
+    assert b.doc_date == date(2026, 7, 3) and b.due_date == date(2026, 8, 12)
+    with pytest.raises(ValueError, match="Строка 1"):
+        invoices_from_frame(pd.DataFrame([{"doc_no": "1", "doc_date": "", "direction": "in", "amount": "1"}]))
+
+
 def test_manual_event_mapping():
     e = manual_event(EventCreate(title="Клиент обещал оплатить", direction="in", amount=300_000.0,
                                  date=date(2026, 8, 20), counterparty_name="ООО «Ромашка»", probability=0.8), 7)
@@ -222,6 +237,62 @@ def test_client_delay_shock_moves_invoice_payment_dates():
     late = next(e for e in late_events if e.id == "inv:in:77")
     assert late.date == base.date + timedelta(days=21)
     assert min(d for d, _ in late.date_pmf) == min(d for d, _ in base.date_pmf) + timedelta(days=21)
+
+
+def test_client_delay_with_invoices_moves_the_clients_share_of_future_invoices():
+    ops = make_statement(business_with_clients(), start=900_000.0)
+    ops = ops[ops["date"] <= pd.Timestamp(AS_OF)]
+    invoices = [Invoice("77", AS_OF - timedelta(days=5), "in", 250_000.0, "0044", "ООО «Клиент»")]
+    model = build_model(ops, AS_OF, seed=1, invoices=invoices)
+    assert model.future and not any(r.direction == 1 for r in model.rates)        # оплаты клиентов ведут счета
+    from app.engine.scenarios import _client_flows, apply_shocks
+
+    np.testing.assert_allclose(_client_flows(model, "0044"), model.future[0].expected())   # единственный клиент
+    _, components = apply_shocks(model, [ClientDelayShock(type="client_delay", counterparty_inn="0044", delay_days=21)])
+    assert any(c.key.startswith("shock:client_delay") for c in components)
+
+
+def test_client_and_supplier_invoices_get_separate_shared_factors():
+    ops = make_statement(business_with_clients(), start=900_000.0)
+    ops = ops[ops["date"] <= pd.Timestamp(AS_OF)]
+    invoices = [Invoice("77", AS_OF - timedelta(days=5), "in", 250_000.0, "0044", "ООО «Клиент»"),
+                Invoice("S1", AS_OF - timedelta(days=3), "out", 100_000.0, "0077", "ООО «Поставщик»",
+                        due_date=AS_OF + timedelta(days=6))]
+    from app.engine.scenarios import apply_shocks
+
+    _, components = apply_shocks(build_model(ops, AS_OF, seed=1, invoices=invoices), [])
+    names = {c.key: c.name for c in components if isinstance(c, SharedFactor)}
+    assert names["event:inv:in:77"] == "invoices:in" and names["event:inv:out:S1"] == "invoices:out"
+
+
+def slow_client_business(balance: float, rent: float = 150_000.0, rent_day: int = 5):
+    """Аренда `rent` `rent_day`-го; клиент 0066 платит по УПД через ~60 дней; остаток `balance` на 31.07.2026."""
+    days = merge(monthly("2025-07", 13, rent_day, "next", rent, "Арендная плата за помещение", inn="0099"),
+                 paid_docs("0066", SLOW * 3, first_doc=date(2025, 3, 3), amount=200_000.0, name="ООО «Медленный»",
+                           step=21))
+    days = {d: v for d, v in days.items() if d <= AS_OF}
+    net = sum(o["sign"] * o["amount"] for ops in days.values() for o in ops)
+    return make_statement(days, start=balance - net)
+
+
+def test_open_invoice_paid_after_the_gap_gives_a_collect_receivable_recommendation():
+    invoices = [Invoice("901", AS_OF - timedelta(days=5), "in", 400_000.0, "0066", "ООО «Медленный»")]
+    res = evaluate(build_model(slow_client_business(50_000.0), AS_OF, seed=2, invoices=invoices), 600)
+    assert res.risk.level == "red" and res.risk.possible_gap_date == date(2026, 8, 5)
+    collect = next(r for r in res.recommendations if r.type == "collect_receivable")
+    assert collect.title == "Попросите ООО «Медленный» оплатить документ № 901 (400 000 ₽) до 4 августа"
+    assert collect.deadline == date(2026, 8, 4) and collect.amount == 400_000.0
+    assert collect.effect.gap_probability_after < 0.1 < res.risk.gap_probability
+    assert res.recommendations.index(collect) < len(res.recommendations) - 1          # раньше кредита
+
+
+def test_invoice_expected_before_the_gap_is_not_worth_chasing():
+    # счёту 58 дней: клиент заплатит до ~14 августа, а разрыв — 25-го, на аренде; просить ускорить нечего
+    invoices = [Invoice("902", AS_OF - timedelta(days=58), "in", 400_000.0, "0066", "ООО «Медленный»")]
+    ops = slow_client_business(50_000.0, rent=900_000.0, rent_day=25)
+    res = evaluate(build_model(ops, AS_OF, seed=2, invoices=invoices), 600)
+    assert res.risk.level == "red" and any(e.id == "inv:in:902" for e in res.events)
+    assert res.recommendations and not any(r.type == "collect_receivable" for r in res.recommendations)
 
 
 def test_shared_factor_scales_all_wrapped_components_by_the_same_multiplier():

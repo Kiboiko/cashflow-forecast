@@ -1,18 +1,20 @@
 """Рекомендации с эффектом и сценарии «что если» на общих случайных числах."""
 from datetime import date, timedelta
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
 from app.engine.pipeline import build_model, evaluate, run_forecast, run_scenario
 from app.engine.response import to_scenario_response
-from app.engine.scenarios import largest_client
+from app.engine.scenarios import largest_client, scenario_delta, scenario_summary
 from app.engine.types import Settings
 from app.schemas import (
     ClientDelayShock,
     FixedCostIncreaseShock,
     OneOffExpenseShock,
     RevenueDropShock,
+    Risk,
     ScenarioResponse,
 )
 from tests.helpers import make_statement, merge, monthly, op
@@ -61,6 +63,22 @@ def test_credit_line_is_last_and_closes_the_gap():
     assert credit.effect.gap_probability_after <= 0.15
     assert [r.id for r in res.recommendations] == [f"r{i}" for i in range(1, len(res.recommendations) + 1)]
     assert "ставке" in credit.title and credit.deadline >= res.dates[0]
+
+
+def test_credit_line_keeps_the_last_slot_when_free_actions_are_many(monkeypatch):
+    import app.engine.recommend as rec
+
+    original = rec._candidates
+
+    def many(model, sim, stats):
+        out = original(model, sim, stats)
+        credit = out[-1]
+        return [("defer_supplier", f"Действие {i}", 1.0, credit[3], credit[4]) for i in range(5)] + [credit]
+
+    monkeypatch.setattr(rec, "_candidates", many)
+    res = evaluate(model(balance=-80_000.0), n_paths=300)
+    assert len(res.recommendations) == rec.MAX_RECOMMENDATIONS
+    assert res.recommendations[-1].type == "credit_line"
 
 
 def test_own_transfer_history_gives_move_own_funds_with_effect():
@@ -164,6 +182,24 @@ def test_scenario_summary_reads_like_the_spec():
     assert isinstance(resp, ScenarioResponse)
     assert resp.summary.startswith("Если клиент заплатит на 3 недели позже,")
     ScenarioResponse.model_validate_json(resp.model_dump_json(by_alias=True))
+
+
+def _risk(p: float, gap: date | None, short: float) -> SimpleNamespace:
+    return SimpleNamespace(risk=Risk(level="red" if gap else "green", gap_probability=p, possible_gap_date=gap,
+                                     shortfall_p50=short, shortfall_p90=short, safe_buffer=short, headline=""))
+
+
+def test_scenario_summary_amount_matches_the_delta_and_never_says_less_for_a_worse_scenario():
+    delay = [ClientDelayShock(type="client_delay", delay_days=21)]
+    base = _risk(0.4, date(2026, 8, 14), 400_000.0)
+    worse = _risk(0.7, date(2026, 8, 10), 580_000.0)
+    assert scenario_summary(delay, base, worse) == ("Если клиент заплатит на 3 недели позже, денег может не хватить "
+                                                     "на 4 дня раньше и на 180 000 ₽ больше.")
+    assert scenario_delta(base, worse).shortfall_p50 == 180_000.0
+    milder_median = _risk(0.7, date(2026, 8, 14), 350_000.0)       # шанс вырос, медиана упала из-за мягких разрывов
+    assert "меньше" not in scenario_summary(delay, base, milder_median)
+    new_gap = scenario_summary(delay, _risk(0.05, None, 0.0), _risk(0.3, date(2026, 8, 20), 120_000.0))
+    assert new_gap == "Если клиент заплатит на 3 недели позже, 20 августа может не хватить около 120 000 ₽."
 
 
 def test_run_forecast_accepts_shocks_and_skips_recommendations():

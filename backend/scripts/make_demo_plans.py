@@ -4,7 +4,7 @@
 Модель увидит номер, дату и сумму документа, но не дату оплаты. В интерфейсе и на слайде подписываем честно:
 «демо-данные учётной системы, восстановлены из выписки».
 
-Запуск из backend/:  uv run python scripts/make_demo_plans.py [--as-of 2026-07-31] [C064 C103 C107 ...]
+Запуск из backend/:  uv run python scripts/make_demo_plans.py [--as-of 2026-07-31] [C064 C107 C109 ...]
 Результат: data/demo/invoices_<company>_<as_of>.csv (формат CSV счетов из §13).
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ from app.engine.normalize import normalize
 from app.engine.receivables import restore_open_documents
 
 ROOT = Path(__file__).resolve().parents[2]
-DEMO_COMPANIES = ["C064", "C103", "C107"]
+DEMO_COMPANIES = ["C064", "C107", "C109"]          # B2B — C109: у C103 нет документов клиентов
 COLUMNS = ["doc_type", "doc_no", "doc_date", "direction", "counterparty_inn", "counterparty_name", "amount", "due_date"]
 
 

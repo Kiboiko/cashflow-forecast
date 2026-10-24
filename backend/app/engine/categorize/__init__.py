@@ -13,6 +13,7 @@ import pandas as pd
 
 from app.engine.categorize.memory import apply_memory, build_memory
 from app.engine.categorize.rules import apply_name_rules, apply_purpose_rules
+from app.engine.categorize.taxonomy import category_direction
 
 CATEGORY_COLUMNS = ["category", "category_source", "category_confidence"]
 
@@ -46,7 +47,11 @@ def categorize(ops: pd.DataFrame, user_rules: dict[str, str] | None = None,
         todo &= ~hit
 
     if user_rules:
-        take(out["cp_key"].map(user_rules), "user", 1.0)
+        user = out["cp_key"].map(user_rules)
+        direction = user.map(lambda c: category_direction(c) if isinstance(c, str) else None)
+        # правило «контрагент → категория» действует в ту сторону, куда идёт категория (возврат от поставщика —
+        # не «Поставщики»); для кодов вне таксономии направления не знаем и применяем как есть
+        take(user.where(direction.isna() | (direction == out["direction"])), "user", 1.0)
     cat, _ = apply_purpose_rules(out, todo)
     take(cat, "rule", 1.0)
     cat, _ = apply_name_rules(out, todo)
