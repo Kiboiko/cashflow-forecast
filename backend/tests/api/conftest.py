@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from dataclasses import dataclass
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,14 +13,20 @@ from app.db.models import Business, User
 from app.db.session import init_db, make_engine, make_session_factory
 from app.main import create_app
 from app.security import hash_password
+from tests.api.synthetic import synthetic_statement, to_csv_bytes
 
 PASSWORD = "correct-horse-1"
+SECRET = "test-secret-test-secret-test-secret-0123"
+
+
+def api_settings(mode: str = "fixture") -> AppSettings:
+    return AppSettings(database_url="sqlite://", forecast_mode=mode, jwt_secret=SECRET, demo_mode=True,
+                       login_attempts_per_minute=5)
 
 
 @pytest.fixture
 def settings() -> AppSettings:
-    return AppSettings(database_url="sqlite://", forecast_mode="fixture", jwt_secret="test-secret-test-secret-test-secret-0123",
-                       demo_mode=True, login_attempts_per_minute=5)
+    return api_settings()
 
 
 @pytest.fixture
@@ -81,3 +88,57 @@ def auth_headers(client: TestClient, email: str, password: str = PASSWORD) -> di
 @pytest.fixture
 def irina_headers(client, irina) -> dict[str, str]:
     return auth_headers(client, "irina@example.com")
+
+
+# ---------- настоящий движок на синтетической выписке ----------
+@dataclass
+class Env:
+    """Приложение в режиме `engine` с одним бизнесом, в который загружена синтетическая выписка."""
+    app: object
+    client: TestClient
+    headers: dict[str, str]
+    bid: str
+    db: Session
+    statement_csv: bytes
+    import_result: dict
+
+    def url(self, path: str) -> str:
+        return f"/api/v1/businesses/{self.bid}{path}"
+
+
+def build_env(crunch: bool = False, data_as_of: str | None = None) -> Iterator[Env]:
+    settings = api_settings("engine")
+    engine = make_engine(settings.database_url)
+    init_db(engine)
+    app = create_app(settings, engine)
+    app.state.session_factory = make_session_factory(engine)
+    db = app.state.session_factory()
+    user = make_user(db, "irina@example.com", "Ирина", demo=True)
+    make_business(db, user, "C064", "Образовательный центр")
+    csv = to_csv_bytes(synthetic_statement(crunch=crunch))
+    with TestClient(app) as client:
+        headers = auth_headers(client, "irina@example.com")
+        response = client.post("/api/v1/businesses/C064/imports", headers=headers,
+                               files={"file": ("statement.csv", csv, "text/csv")})
+        assert response.status_code == 200, response.text
+        env = Env(app, client, headers, "C064", db, csv, response.json())
+        if data_as_of:                                    # как у демо-персон: выписка целиком, видна до даты
+            from datetime import date
+            business = db.get(Business, "C064")
+            business.data_as_of = date.fromisoformat(data_as_of)
+            business.data_version += 1
+            db.commit()
+        yield env
+    db.close()
+
+
+@pytest.fixture(scope="module")
+def env() -> Iterator[Env]:
+    """Один импорт на модуль — для тестов, которые только читают."""
+    yield from build_env()
+
+
+@pytest.fixture
+def fresh_env() -> Iterator[Env]:
+    """Свой импорт на тест — для тестов, которые меняют данные."""
+    yield from build_env()

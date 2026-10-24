@@ -368,3 +368,81 @@ class BusinessOut(Schema):
     accounting_source: str | None = None            # откуда счета: demo_accounting | csv | 1c | None
     data_quality: DataQuality | None = None
     replay: ReplayInfo
+
+
+# ---------- операции и категории ----------
+CategorySource = Literal["user", "rule", "name_rule", "memory", "ml", "unknown"]
+
+
+class TransactionOut(Schema):
+    id: int
+    date: Date
+    amount: float                                   # всегда положительная; знак — в direction
+    direction: Direction
+    counterparty_inn: str | None = None
+    counterparty_name: str | None = None
+    purpose: str | None = None
+    category: str | None = None
+    category_title: str | None = None
+    category_source: CategorySource | None = None
+    needs_review: bool = False                      # не распознано — просим уточнить
+    flags: list[str] = []                           # duplicate | reversal | gap_adjacent
+
+
+class TransactionPage(Schema):
+    items: list[TransactionOut]
+    total: int
+    limit: int
+    offset: int
+    needs_review_count: int                         # всего нераспознанных (для «Нераспознанные (3) — уточните»)
+
+
+class CategoryInfo(Schema):
+    code: str
+    title: str
+    group: str
+    mandatory: bool
+
+
+class CategoryPatch(Schema):
+    """Исправление категории. `apply_to_counterparty` — запомнить правило для контрагента и пересобрать все его операции."""
+    category: str
+    apply_to_counterparty: bool = False
+
+
+class CategoryPatchResult(Schema):
+    transaction: TransactionOut
+    updated: int                                    # сколько операций сменили категорию
+    rule_saved: bool
+
+
+class CategorySummaryRow(Schema):
+    category: str
+    title: str
+    group: str
+    direction: Direction
+    total: float
+    by_month: list[float]
+
+
+class CategorySummary(Schema):
+    """«Куда уходят деньги»: суммы по категориям и месяцам."""
+    months: list[str]                               # ГГГГ-ММ, по возрастанию
+    rows: list[CategorySummaryRow]
+    inflow_total: float
+    outflow_total: float
+
+
+class RecurringOut(Schema):
+    key: str
+    category: str
+    title: str
+    direction: Direction
+    schedule: str                                   # «каждый месяц 10-го»
+    amount: float
+    last_date: Date
+    active: bool
+    confidence: float
+    mandatory: bool
+    counterparty: str | None = None
+    explain: str

@@ -21,6 +21,7 @@ _QUERY = re.compile(r"\?\S*")
 MASK = "***"
 MSK = dt.timezone(dt.timedelta(hours=3))
 _installed = False
+_OWN_HANDLER_FLAG = "_kassa_json_handler"
 
 
 def mask(text: str) -> str:
@@ -73,11 +74,16 @@ def setup_logging(level: str = "INFO") -> None:
     install_masking()
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
+    setattr(handler, _OWN_HANDLER_FLAG, True)
     root = logging.getLogger()
-    root.handlers[:] = [handler]
+    # Заменяем только свой прежний обработчик: чужие (например, перехват логов в pytest) остаются на месте.
+    root.handlers[:] = [h for h in root.handlers if not getattr(h, _OWN_HANDLER_FLAG, False)] + [handler]
     root.setLevel(level)
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+    for name in ("uvicorn", "uvicorn.error"):
         logger = logging.getLogger(name)
         logger.handlers.clear()
         logger.propagate = True
+    access = logging.getLogger("uvicorn.access")               # строку запроса пишет наш middleware (без параметров)
+    access.handlers.clear()
+    access.propagate = False
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)       # SQL с параметрами не пишем

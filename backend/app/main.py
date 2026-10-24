@@ -23,6 +23,7 @@ from app.config import AppSettings, get_settings
 from app.db.session import init_db, make_engine, make_session_factory
 from app.logging_setup import setup_logging
 from app.security import LoginRateLimiter
+from app.services.engine_adapter import NoDataError
 from app.services.forecast_service import ForecastService
 
 log = logging.getLogger("kassa.http")
@@ -72,6 +73,11 @@ def create_app(settings: AppSettings | None = None, engine: Engine | None = None
             "method": request.method, "path": request.url.path, "status": response.status_code,
             "ms": round((time.perf_counter() - started) * 1000)}})
         return response
+
+    @app.exception_handler(NoDataError)
+    async def no_data(request: Request, exc: NoDataError) -> JSONResponse:
+        # 409: бизнес создан, но выписки ещё нет — интерфейс предлагает загрузить файл
+        return JSONResponse({"detail": "Пока нет данных: загрузите выписку.", "code": "no_data"}, status_code=409)
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception) -> JSONResponse:
