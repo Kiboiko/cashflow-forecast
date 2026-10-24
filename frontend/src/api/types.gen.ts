@@ -146,6 +146,26 @@ export interface paths {
         patch: operations["patch_settings_api_v1_businesses__bid__settings_patch"];
         trace?: never;
     };
+    "/api/v1/businesses/{bid}/telegram/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Telegram Test
+         * @description Присылает владельцу тестовое сообщение: так видно, что бот подключён, а id чата указан верно.
+         */
+        post: operations["telegram_test_api_v1_businesses__bid__telegram_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/businesses/{bid}/forecast": {
         parameters: {
             query?: never;
@@ -1571,6 +1591,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** TelegramTestResult */
+        TelegramTestResult: {
+            /** Sent */
+            sent: boolean;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -1874,6 +1899,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    telegram_test_api_v1_businesses__bid__telegram_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramTestResult"];
                 };
             };
             /** @description Validation Error */

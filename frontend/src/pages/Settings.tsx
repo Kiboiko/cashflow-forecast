@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError } from '../api/client'
-import { useBusiness, useUpdateSettings } from '../api/hooks'
+import { useBusiness, useTelegramTest, useUpdateSettings } from '../api/hooks'
 import type { BusinessOut } from '../api/types'
 import { useCurrentBusiness } from '../auth'
 import { Check, Field, TextInput } from '../components/forms'
@@ -18,6 +18,7 @@ const toNumber = (text: string): number => Number(text.replace(/\s/g, '').replac
 
 function SettingsForm({ business }: { business: BusinessOut }) {
   const update = useUpdateSettings(business.id)
+  const telegramTest = useTelegramTest(business.id)
   const s = business.settings
   const [horizon, setHorizon] = useState<30 | 60 | 90>(s.horizon_days)
   const [threshold, setThreshold] = useState(String(s.threshold))
@@ -29,6 +30,14 @@ function SettingsForm({ business }: { business: BusinessOut }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(false)
   const apiError = update.error instanceof ApiError ? update.error.message : null
+  const testing = update.isPending || telegramTest.isPending
+  const testError = !telegramTest.isError ? null : telegramTest.error instanceof ApiError ? telegramTest.error.message : 'Не удалось отправить. Попробуйте ещё раз.'
+
+  // Id чата сначала сохраняем: сервер шлёт тест на сохранённое значение, а не на то, что набрано в поле
+  const sendTest = () => {
+    telegramTest.reset()
+    update.mutate({ telegram_chat_id: telegram.trim() }, { onSuccess: () => telegramTest.mutate() })
+  }
 
   const save = () => {
     const found: Record<string, string> = {}
@@ -131,6 +140,22 @@ function SettingsForm({ business }: { business: BusinessOut }) {
         <Field label={copy.settings.telegram} hint={copy.settings.telegramHint}>
           {(id) => <TextInput id={id} value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="123456789" className="sm:max-w-xs" inputMode="numeric" />}
         </Field>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button size="sm" disabled={testing || !telegram.trim()} onClick={sendTest}>
+            {testing ? copy.settings.telegramTesting : copy.settings.telegramTest}
+          </Button>
+          <span className="text-sm text-ink-2">{copy.settings.telegramPrivacy}</span>
+        </div>
+        {telegramTest.isSuccess && (
+          <p role="status" className="mt-3 rounded-xl bg-good-soft px-3.5 py-2.5 text-sm text-good-ink">
+            {copy.settings.telegramSent}
+          </p>
+        )}
+        {testError && (
+          <p role="alert" className="mt-3 rounded-xl bg-crit-soft px-3.5 py-2.5 text-sm text-crit-ink">
+            {testError}
+          </p>
+        )}
       </Card>
 
       {apiError && (

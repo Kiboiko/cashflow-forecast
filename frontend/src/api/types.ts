@@ -51,6 +51,7 @@ export type SnapshotBrief = S['SnapshotBrief']
 export type Alert = S['Alert']
 export type ReplayResult = S['ReplayResult']
 export type BacktestReport = S['BacktestReport']
+export type TelegramTestResult = S['TelegramTestResult']
 
 export type RiskLevel = Risk['level']
 export type Direction = 'in' | 'out'

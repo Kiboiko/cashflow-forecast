@@ -27,6 +27,7 @@ import type {
   ScenarioResponse,
   SettingsPatch,
   SnapshotBrief,
+  TelegramTestResult,
   TokenResponse,
   TransactionPage,
 } from './types'
@@ -112,6 +113,13 @@ export function useUpdateSettings(bid: string) {
   return useMutation({
     mutationFn: (patch: SettingsPatch) => api.patch<BusinessOut>(`/businesses/${bid}/settings`, patch),
     onSuccess: () => refreshBusiness(client, bid),
+  })
+}
+
+/** Тестовое сообщение в Telegram: сервер шлёт его на сохранённый id чата. */
+export function useTelegramTest(bid: string) {
+  return useMutation({
+    mutationFn: () => api.post<TelegramTestResult>(`/businesses/${bid}/telegram/test`),
   })
 }
 

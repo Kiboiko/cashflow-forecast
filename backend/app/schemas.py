@@ -571,6 +571,11 @@ class BacktestReport(Schema):
     report: dict
 
 
+# ---------- проверка связи с Telegram ----------
+class TelegramTestResult(Schema):
+    sent: bool
+
+
 # ---------- план-факт: расширение контракта (поля сверх §8, клиенты старого формата их просто не читают) ----------
 class PlanFactEventOut(PlanFactEvent):
     direction: Direction | None = None              # приход или платёж: от этого зависят слова «пришло / заплатили»
