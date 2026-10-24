@@ -71,6 +71,22 @@ def test_manual_event_changes_the_forecast(fresh_env):
     assert after["daily"][-1]["p50"] < before["daily"][-1]["p50"] - 800000
 
 
+def test_plan_changes_do_not_rebuild_the_engine_state(fresh_env):
+    """Событие меняет только прогноз: состояние движка (качество, категории) пересобирать незачем."""
+    env = fresh_env
+    service = env.app.state.forecast_service
+    business = env.db.get(Business, "C064")
+    before = service.state(env.db, business)
+    env.client.post(env.url("/events"), headers=env.headers, json={
+        "title": "Ожидаемый платёж", "direction": "in", "amount": 100000, "date": "2026-09-15"})
+    env.db.expire_all()
+    business = env.db.get(Business, "C064")
+    assert service.state(env.db, business) is before
+    env.client.patch(env.url("/settings"), headers=env.headers, json={"threshold": 10000})     # настройки — другое дело
+    env.db.expire_all()
+    assert service.state(env.db, env.db.get(Business, "C064")) is not before
+
+
 def test_event_validation(fresh_env):
     env = fresh_env
     past = env.client.post(env.url("/events"), headers=env.headers, json={

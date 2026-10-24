@@ -14,8 +14,11 @@ import pandas as pd
 from sqlalchemy import func, insert, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Account, Business, ImportBatch, Transaction
+from app.db.models import Account, Business, ForecastSnapshot, ImportBatch, Transaction
+from app.engine.alerts import build_alerts
 from app.schemas import GapOut, ImportResult
+from app.services import alert_service
+from app.services.business_service import business_settings
 from app.services.engine_adapter import persist_derived
 from app.services.forecast_service import ForecastService
 
@@ -155,6 +158,8 @@ def import_statement(db: Session, business: Business, service: ForecastService, 
 
     state = service.state(db, business)
     persist_derived(db, business, state)
+    if source != "seed":                      # посев делает свой снимок и предупреждения сам, с датой «до сегодняшнего»
+        _notify_after_import(db, business, service, state)
 
     unknown = int((state.ops["category_source"] == "unknown").sum())
     total = len(state.ops)
@@ -170,6 +175,16 @@ def import_statement(db: Session, business: Business, service: ForecastService, 
     log.info("import", extra={"fields": {"business": business.id, "format": source, "rows": len(frame), "added": added,
                                          "ms": round((time.perf_counter() - started) * 1000)}})
     return result
+
+
+def _notify_after_import(db: Session, business: Business, service: ForecastService, state) -> None:
+    """Свежая выписка → новый прогноз → предупреждения (риск, обязательные платежи, пропуски данных, «уточните»)."""
+    previous = db.scalar(select(ForecastSnapshot).where(ForecastSnapshot.business_id == business.id)
+                         .order_by(ForecastSnapshot.as_of.desc(), ForecastSnapshot.id.desc()))
+    result = service.result(db, business, business_settings(business).horizon_days)
+    drafts = build_alerts(result, state.ops, previous.payload.get("risk") if previous else None, [])
+    alert_service.store_alerts(db, business, drafts, alert_service.virtual_now(business.data_as_of))
+    service.ensure_snapshot(db, business)
 
 
 def format_of(content: bytes) -> str:

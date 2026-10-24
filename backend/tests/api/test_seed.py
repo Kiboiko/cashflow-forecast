@@ -74,6 +74,15 @@ def test_reseed_is_clean_and_idempotent(seeded):
     assert db.scalar(select(func.count()).select_from(User).where(User.email == persona.email)) == 1
 
 
+def test_warm_up_precomputes_demo_forecasts(seeded):
+    db, service, _ = seeded
+    service.clear()
+    assert service.warm_up(make_session_factory(db.get_bind())) == 3
+    business = db.get(Business, "C064")
+    first = service.result(db, business, 30)
+    assert service.result(db, business, 30) is first                    # уже в кэше: повторного расчёта нет
+
+
 def test_personas_without_dataset():
     engine = make_engine("sqlite://")
     init_db(engine)

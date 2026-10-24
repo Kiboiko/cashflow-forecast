@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 from typing import Annotated
 
@@ -75,6 +76,14 @@ def replay_reset(body: ReplayResetRequest, request: Request, business: OwnedBusi
         return replay_service.reset(db, business, request.app.state.forecast_service, body.as_of)
     except replay_service.ReplayError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+
+
+@router.post("/demo/warm-up", status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(_demo_only)])
+def warm_up(request: Request) -> dict:
+    """После `make seed`: пусть API заранее посчитает прогнозы демо-бизнесов, чтобы первый вход жюри был быстрым."""
+    threading.Thread(target=request.app.state.forecast_service.warm_up, args=(request.app.state.session_factory,),
+                     daemon=True, name="warm-up").start()
+    return {"status": "started"}
 
 
 @router.get("/quality/backtest", response_model=BacktestReport)

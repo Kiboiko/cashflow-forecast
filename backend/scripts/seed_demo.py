@@ -8,8 +8,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
+import urllib.request
 from datetime import date
 from pathlib import Path
 
@@ -67,7 +69,18 @@ def main() -> None:
             print(f"  {persona.display_name:8} {persona.company_id}: {report.rows} операций, "
                   f"риск {report.risk_level} ({report.gap_probability:.0%}), предупреждений {report.alerts}")
         print(f"Готово за {time.perf_counter() - started:.0f} с.")
+        _ask_api_to_warm_up()
         _print_accounts(reports)
+
+
+def _ask_api_to_warm_up() -> None:
+    """Работающий API живёт в другом процессе и про новые данные не знает: просим его прогреть кэш (не обязательно)."""
+    url = os.environ.get("API_URL", "http://localhost:8000") + "/api/v1/demo/warm-up"
+    try:
+        urllib.request.urlopen(urllib.request.Request(url, method="POST"), timeout=3)  # noqa: S310 — свой адрес
+        print("API прогревает прогнозы демо-бизнесов в фоне.")
+    except OSError:
+        print("API сейчас недоступен — первый вход будет чуть медленнее (холодный старт).")
 
 
 def _print_accounts(reports: list) -> None:

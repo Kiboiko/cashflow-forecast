@@ -1,10 +1,14 @@
 # Сборка из корня репозитория: docker compose build api  (context: ., dockerfile: backend/Dockerfile)
 FROM python:3.12-slim
 
+# Один поток BLAS: расчёты небольшие, а лишние потоки только мешают друг другу и дают скачки задержки
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PYTHON_DOWNLOADS=never \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    OPENBLAS_NUM_THREADS=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
 
 RUN pip install --no-cache-dir uv
 

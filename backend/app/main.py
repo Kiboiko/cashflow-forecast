@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 import traceback
 from collections.abc import AsyncIterator
@@ -51,6 +52,10 @@ def create_app(settings: AppSettings | None = None, engine: Engine | None = None
         setup_logging()
         _wait_for_db(engine)
         init_db(engine)
+        if settings.warm_up and settings.forecast_mode == "engine":
+            # в фоне: API отвечает сразу, а первый вход демо-пользователя попадает в уже тёплый кэш
+            threading.Thread(target=app.state.forecast_service.warm_up, args=(app.state.session_factory,),
+                             daemon=True, name="warm-up").start()
         yield
 
     app = FastAPI(title="Кассовый радар", version="1.0", lifespan=lifespan,

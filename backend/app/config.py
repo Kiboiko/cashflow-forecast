@@ -21,6 +21,7 @@ class AppSettings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:8080"
     forecast_mode: Literal["engine", "fixture"] = "engine"      # fixture — отдавать готовый ответ (К1, тесты)
     demo_mode: bool = True                                      # вход персоны одним нажатием, машина времени
+    warm_up: bool = True                                        # при старте заранее считать прогноз демо-бизнесов
     login_attempts_per_minute: int = 5
     trust_proxy_headers: bool = False                           # True за nginx: адрес клиента из X-Forwarded-For
     data_dir: Path = ROOT / "data"

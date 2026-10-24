@@ -71,7 +71,8 @@ class Business(Base):
     industry: Mapped[str | None] = mapped_column(String(120), default=None)
     settings: Mapped[dict] = mapped_column(JSON, default=lambda: copy.deepcopy(DEFAULT_SETTINGS))
     data_as_of: Mapped[dt.date | None] = mapped_column(Date, default=None)        # «Данные по …»: чтение видит операции ≤ даты
-    data_version: Mapped[int] = mapped_column(Integer, default=1)                  # растёт при любом изменении данных/правил
+    data_version: Mapped[int] = mapped_column(Integer, default=1)                  # растёт при изменении данных, правил, настроек
+    plan_version: Mapped[int] = mapped_column(Integer, default=1)                  # растёт при правке плана: события, счета, договоры
     accounting_source: Mapped[str | None] = mapped_column(String(24), default=None)  # demo_accounting | csv | 1c | None
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=now_msk)
 

@@ -97,6 +97,12 @@ def test_demo_login_refuses_regular_users_and_disabled_demo(client, app, db):
     assert client.post("/api/v1/auth/demo-login", json={"email": "real@example.com"}).status_code == 404
 
 
+def test_warm_up_endpoint_is_demo_only(client, app):
+    assert client.post("/api/v1/demo/warm-up").status_code == 202
+    app.state.settings.demo_mode = False
+    assert client.post("/api/v1/demo/warm-up").status_code == 404
+
+
 def test_settings_patch_merges_and_validates(client, irina_headers):
     url = "/api/v1/businesses/C064/settings"
     ok = client.patch(url, json={"threshold": 50000, "other_accounts": [{"bank": "Т-Банк", "balance": 120000}],

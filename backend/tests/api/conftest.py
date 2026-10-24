@@ -21,7 +21,7 @@ SECRET = "test-secret-test-secret-test-secret-0123"
 
 def api_settings(mode: str = "fixture") -> AppSettings:
     return AppSettings(database_url="sqlite://", forecast_mode=mode, jwt_secret=SECRET, demo_mode=True,
-                       login_attempts_per_minute=5)
+                       login_attempts_per_minute=5, warm_up=False)
 
 
 @pytest.fixture

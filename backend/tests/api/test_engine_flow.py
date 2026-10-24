@@ -233,6 +233,18 @@ def test_import_does_not_log_counterparty_data(caplog):
     assert "kassa.import" in text                                 # сами записи об импорте есть: счётчики и длительность
 
 
+def test_import_creates_snapshot_and_alerts():
+    """После загрузки выписки сразу есть снимок прогноза (база план-факта) и предупреждения по риску."""
+    from tests.api.conftest import build_env
+    for env in build_env(crunch=True):
+        snapshots = env.client.get(env.url("/snapshots"), headers=env.headers).json()
+        assert len(snapshots) == 1 and snapshots[0]["as_of"] == "2026-08-31"
+        level = env.client.get(env.url("/forecast"), headers=env.headers).json()["risk"]["level"]
+        alerts = env.client.get(env.url("/alerts"), headers=env.headers).json()
+        assert (level == "green") == (not any(a["type"] == "gap_risk" for a in alerts))
+        assert all(a["created_at"].startswith("2026-08-31") for a in alerts)         # дата данных, а не сегодняшний день
+
+
 def test_synthetic_csv_roundtrip():
     frame = synthetic_statement(end=date(2025, 3, 31))
     assert to_csv_bytes(frame).startswith(b"\xef\xbb\xbf")

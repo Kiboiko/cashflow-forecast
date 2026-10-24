@@ -10,7 +10,9 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import logging
 import threading
+import time
 from collections import OrderedDict
 from collections.abc import Hashable
 from dataclasses import replace
@@ -24,7 +26,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import AppSettings
-from app.db.models import Business, ExpectedEvent, ForecastSnapshot
+from app.db.models import Business, ExpectedEvent, ForecastSnapshot, User
 from app.engine.categorize import categorize
 from app.engine.categorize.taxonomy import TAXONOMY
 from app.engine.enrich import enrich
@@ -59,6 +61,9 @@ _MAX_DATE = date(9999, 12, 31)
 SOURCE_LABELS = {"demo_accounting": "Демо-данные учётной системы (восстановлены из выписки)", "csv": "Файл со счетами",
                  "1c": "1С"}
 PAID_SHARE = 0.95                    # счёт, оплаченный на 95% и больше, открытым не считаем
+
+
+log = logging.getLogger("kassa.forecast")
 
 
 @lru_cache
@@ -217,7 +222,8 @@ class ForecastService:
 
     # ---------- прогноз ----------
     def result(self, db: Session, business: Business, horizon: int) -> ForecastResult:
-        key = (business.id, business.data_version, horizon)
+        # Состояние движка зависит от данных, правил и настроек; план (события, счета) влияет только на прогноз.
+        key = (business.id, business.data_version, business.plan_version, horizon)
         with self._lock(business.id):
             cached = self._results.get(key)
             if cached is not None:
@@ -247,7 +253,8 @@ class ForecastService:
 
     # ---------- «что если» ----------
     def scenario(self, db: Session, business: Business, request: ScenarioRequest) -> ScenarioResponse:
-        key = (business.id, business.data_version, hashlib.sha1(request.model_dump_json(by_alias=True).encode()).hexdigest())
+        key = (business.id, business.data_version, business.plan_version,
+               hashlib.sha1(request.model_dump_json(by_alias=True).encode()).hexdigest())
         with self._lock(business.id):
             cached = self._scenarios.get(key)
             if cached is not None:
@@ -318,6 +325,25 @@ class ForecastService:
                 amount=round(s.amount, 2), last_date=s.last_date, active=s.active, confidence=round(s.confidence, 2),
                 mandatory=s.mandatory, counterparty=s.counterparty, explain=s.explain))
         return sorted(out, key=lambda r: (not r.active, r.direction == "in", -r.amount))
+
+    # ---------- прогрев ----------
+    def warm_up(self, factory, limit: int = 5) -> int:
+        """Строит состояние и прогноз демо-бизнесов заранее: первый вход жюри не ждёт холодного старта
+        (импорты pandas/sklearn и первая сборка занимают секунды). Ошибки прогрева сервис не роняют."""
+        started = time.perf_counter()
+        done = 0
+        with factory() as db:
+            businesses = db.scalars(
+                select(Business).join(User, User.id == Business.owner_user_id)
+                .where(User.is_demo.is_(True), Business.data_as_of.is_not(None)).order_by(Business.id).limit(limit)).all()
+            for business in businesses:
+                try:
+                    self.result(db, business, business_settings(business).horizon_days)
+                    done += 1
+                except Exception:  # noqa: BLE001 — прогрев необязателен
+                    log.warning("warm_up failed", extra={"fields": {"business": business.id}})
+        log.info("warm_up", extra={"fields": {"businesses": done, "ms": round((time.perf_counter() - started) * 1000)}})
+        return done
 
     # ---------- снимки для план-факта ----------
     def params_hash(self, db: Session, business: Business) -> str:

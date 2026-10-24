@@ -52,7 +52,7 @@ def create_manual(db: Session, business: Business, body: EventCreate) -> Expecte
         expected_date=body.date, title=body.title.strip(), counterparty_name=(body.counterparty_name or "").strip() or None,
         probability=body.probability, mandatory=body.mandatory, status="planned", meta={})
     db.add(event)
-    business.data_version += 1
+    business.plan_version += 1
     db.commit()
     return event
 
@@ -66,14 +66,14 @@ def update_event(db: Session, business: Business, event: ExpectedEvent, patch: E
     for field, value in changes.items():
         if value is not None or field == "counterparty_name":
             setattr(event, field, value)
-    business.data_version += 1
+    business.plan_version += 1
     db.commit()
     return event
 
 
 def cancel_event(db: Session, business: Business, event: ExpectedEvent) -> None:
     event.status = "cancelled"
-    business.data_version += 1
+    business.plan_version += 1
     db.commit()
 
 
@@ -205,6 +205,6 @@ def import_events_csv(db: Session, business: Business, content: bytes) -> Events
     db.add_all(rows)
     if kind == "invoices" and business.accounting_source not in ("csv", "1c"):
         business.accounting_source = "csv"             # свой файл важнее демо-«учётной системы»
-    business.data_version += 1
+    business.plan_version += 1
     db.commit()
     return EventsImportResult(kind=kind, added=len(rows), skipped=skipped, accounting_source=business.accounting_source)
