@@ -20,8 +20,9 @@ SECRET = "test-secret-test-secret-test-secret-0123"
 
 
 def api_settings(mode: str = "fixture") -> AppSettings:
-    return AppSettings(database_url="sqlite://", forecast_mode=mode, jwt_secret=SECRET, demo_mode=True,
-                       login_attempts_per_minute=5, warm_up=False)
+    # _env_file=None: тесты не читают .env разработчика (там может быть настоящий токен бота)
+    return AppSettings(_env_file=None, database_url="sqlite://", forecast_mode=mode, jwt_secret=SECRET, demo_mode=True,
+                       login_attempts_per_minute=5, warm_up=False, telegram_bot_token="")
 
 
 @pytest.fixture

@@ -293,7 +293,7 @@ erDiagram
 | Сущность | Ключевые поля | Комментарий |
 |---|---|---|
 | `User` (предприниматель) | email, password_hash, display_name, telegram_chat_id | центр модели; в демо один пользователь = одна компания датасета |
-| `Business` | owner_user_id, name, inn, legal_form, industry, settings (JSON), data_as_of | settings: `horizon_days=30`, `threshold=0` (неснижаемый остаток), `overdraft_limit=0`, `risk_yellow=0.10`, `risk_red=0.40`, `other_accounts=[{bank, balance}]`, `include_owner_withdrawals=true` |
+| `Business` | owner_user_id, name, inn, legal_form, industry, settings (JSON), data_as_of | settings: `horizon_days=30`, `threshold=0` (неснижаемый остаток), `overdraft_limit=0`, `risk_yellow=0.10`, `risk_red=0.35`, `other_accounts=[{bank, balance}]`, `include_owner_withdrawals=true` |
 | `Account` | business_id, bank_name, is_primary | основной — из выписки; другие — вручную, только остаток |
 | `Transaction` | business_id, account_id, external_id, date, amount (Numeric 18,2), direction (+1/−1), counterparty_inn, counterparty_name, purpose, balance_eod, category, category_source (`user`/`rule`/`name_rule`/`memory`/`ml`/`unknown`), category_confidence, doc_type, doc_no, doc_date, contract_no, sales_date, flags (JSON: duplicate, reversal_pair_id, gap_adjacent), import_batch_id | индекс (business_id, date) |
 | `DataGap` | business_id, start_date, end_date, unexplained_amount | из сверки остатков |
@@ -557,7 +557,7 @@ def simulate(start_balance: float, dates: list[date], components: list[Component
 - `possible_gap_date` — первый день с `prob_below ≥ 0,2`; `likely_gap_date` — первый день с `prob_below ≥ 0,5`;
 - нехватка сценария = `max_t (threshold − B_t)⁺`; `shortfall_p50` — медиана по сценариям с разрывом («скорее всего не хватит»), `shortfall_p90` — 90-й перцентиль («в плохом сценарии»);
 - `safe_buffer` — 90-й перцентиль нехватки по всем сценариям: «чтобы с вероятностью 90% обойтись без разрыва, нужно дополнительно ≈X ₽ к дате D»;
-- `level`: зелёный — шанс < 0,10; жёлтый — 0,10–0,40; красный — ≥ 0,40 или `likely_gap_date` в ближайшие 7 дней (пороги — в настройках);
+- `level`: зелёный — шанс < 0,10; жёлтый — 0,10–0,35; красный — ≥ 0,35 (порог выбран по F1 на отсечках настройки, §7.1) или `likely_gap_date` в ближайшие 7 дней (пороги — в настройках);
 - **покрытие обязательных платежей**: для каждого обязательного события e — `P(B_{t_e−1} + приходы дня ≥ сумма e)` → «Зарплата 10 авг (412 000 ₽) — хватит с вероятностью 62%». Это главный вопрос предпринимателя.
 
 Что такое «вероятность» (для слайда): доля из 1 000 смоделированных сценариев, в которых остаток хотя бы один день опускается ниже порога. Калибровку проверяем в бэктесте (§7).
@@ -671,8 +671,9 @@ def simulate(start_balance: float, dates: list[date], components: list[Component
 | Структурный (+ калибровка шанса) | **0,190** | 78% | **0,94** | 96% |
 | Структурный + бустинг выручки (M2) | 0,186 | 79% | 0,94 | 97% |
 
-Уровень «красный» (шанс ≥40%): precision 84%, recall 56%; «жёлтый» (≥10%): precision 43%, recall 96%. Обнаружение разрыва: ошибка
-даты — медиана 2 дня, заблаговременность — 8 дней. Параметры подбирали только на отсечках настройки.
+Уровень «красный» (шанс ≥35% или вероятная дата разрыва в ближайшие 7 дней — то же правило, что в продукте): precision 74%,
+recall 62%; «жёлтый» (≥10%): precision 43%, recall 96%. Обнаружение разрыва: ошибка даты — медиана 2 дня, заблаговременность —
+8 дней. Параметры подбирали только на отсечках настройки.
 
 Отклонения от плана, принятые по результатам на отсечках настройки (не на тесте):
 
@@ -705,6 +706,12 @@ def simulate(start_balance: float, dates: list[date], components: list[Component
    Теперь шанс = 0,5 + 0,5 × доля последних 6 месяцев с платежом (платёж относится к месяцу своей номинальной даты: январский
    расчёт, перенесённый праздниками на 30 декабря, — январский). На tune: rel-MAE 0,189 → 0,187, ROC-AUC 0,929 → 0,931; на тесте
    WAPE зарплаты 0,158 → 0,108 (смещение −14% → −8%), rel-MAE 0,195 → 0,190. Калибровка пересобрана.
+9. **Порог «красного» — 0,35 вместо 0,40, выбран по F1 на tune.** Раньше отчёт мерил красный только по порогу шанса и не
+   учитывал правило «разрыв вероятен в ближайшие 7 дней», которое есть в продукте; теперь бэктест считает то же правило. При
+   калибровке, подобранной на tune: на tune F1 0,672 → 0,701 (recall 60% → 66%, precision 76% → 75%), на тесте F1 0,673 → 0,676
+   (recall 58% → 62%, precision 81% → 74%). Это сдвиг компромисса, а не лучшее различение: разрывы, которые красный пропускает,
+   модель видит с умеренным шансом (медиана 16–20%) — их ловит жёлтый (recall 96%). Следующий шаг для настоящего улучшения —
+   второй уровень модели с признаками бизнеса (вложения владельца, остаток к масштабу), подбор на tune.
 
 ---
 

@@ -138,6 +138,12 @@ def test_mandatory_payments_on_the_same_day_share_the_money_salary_first():
     assert coverage == {"sal": 1.0, "tax": 0.0}
 
 
+def test_default_red_threshold_is_35_percent():
+    ev = event(10, 180_000.0, p=0.37)
+    stats = assess_risk(run(100_000.0, [ev], n=20_000), AS_OF, Settings(), [ev], calibrated=False)
+    assert 0.35 < stats.gap_probability < 0.40 and stats.likely_gap_date is None and stats.level == "red"
+
+
 def test_incoming_money_on_the_payment_day_counts_for_coverage():
     pay, income = event(10, 150_000.0), event(10, 100_000.0, direction=1, mandatory=False)
     sim = run(100_000.0, [pay, income])

@@ -21,8 +21,10 @@ SCALE_MIN = 10_000.0                 # крошечный остаток: мин
 SCALE_DAYS = 90
 MIN_HISTORY_DAYS = 90
 POSSIBLE_PROB = 0.2
+LIKELY_PROB = 0.5
 YELLOW_PROB = 0.10                   # порог «жёлтого» для precision/recall
-RED_PROB = 0.40                      # порог «красного»
+RED_PROB = 0.35                      # порог «красного» (как Settings.risk_red; выбран по F1 на tune)
+RED_WITHIN_DAYS = 7                  # …или вероятная дата разрыва (P ≥ 0,5) в ближайшие 7 дней, как в risk.py
 NAIVE = "naive"
 SEASONAL_NAIVE = "seasonal_naive"
 STRUCTURAL_M0 = "structural_m0"
@@ -115,6 +117,7 @@ class Summary:
     gap_probability: dict[int, float]        # по горизонтам: P(min_{t≤h} B < 0)
     possible_gap_day: int | None             # первый день (1..H) с P(B<0) ≥ 0,2
     shortfall_p50: float
+    likely_gap_day: int | None = None        # первый день с P(B<0) ≥ 0,5
 
 
 def summarize(paths: np.ndarray, horizons: tuple[int, ...] = HORIZONS) -> Summary:
@@ -123,11 +126,13 @@ def summarize(paths: np.ndarray, horizons: tuple[int, ...] = HORIZONS) -> Summar
     p10, p50, p90 = np.percentile(paths, [10, 50, 90], axis=0)
     prob_below = below.mean(axis=0)
     hit = np.nonzero(prob_below >= POSSIBLE_PROB)[0]
+    likely = np.nonzero(prob_below >= LIKELY_PROB)[0]
     shortfall = np.maximum(-paths, 0).max(axis=1)
     has_gap = shortfall > 0
     return Summary(
         p10, p50, p90, {h: float(below[:, :h].any(axis=1).mean()) for h in horizons if h <= paths.shape[1]},
         int(hit[0]) + 1 if len(hit) else None, float(np.median(shortfall[has_gap])) if has_gap.any() else 0.0,
+        int(likely[0]) + 1 if len(likely) else None,
     )
 
 
@@ -140,12 +145,15 @@ def coverage(p10: np.ndarray, p90: np.ndarray, b_op: np.ndarray, h: int) -> floa
     return float(np.mean((b_op[:h] >= p10[:h]) & (b_op[:h] <= p90[:h])))
 
 
-def detection_metrics(y: np.ndarray, score: np.ndarray, threshold: float = YELLOW_PROB) -> dict:
-    """ROC-AUC, PR-AUC, precision и recall при пороге «жёлтого». Если в выборке нет одного из классов — AUC = None."""
+def detection_metrics(y: np.ndarray, score: np.ndarray, threshold: float = YELLOW_PROB,
+                      pred: np.ndarray | None = None) -> dict:
+    """ROC-AUC, PR-AUC, precision и recall при пороге «жёлтого». Если в выборке нет одного из классов — AUC = None.
+
+    `pred` — готовое решение «тревога» (например, правило красного уровня), иначе `score ≥ threshold`."""
     from sklearn.metrics import average_precision_score, roc_auc_score
 
     y, score = np.asarray(y, dtype=int), np.asarray(score, dtype=float)
-    pred = score >= threshold
+    pred = score >= threshold if pred is None else np.asarray(pred, dtype=bool)
     tp = int((pred & (y == 1)).sum())
     out = {
         "n": len(y), "positives": int(y.sum()),
@@ -222,7 +230,7 @@ def _approach_row(summary: Summary, truth: Truth) -> dict:
         "rel_mae": {h: rel_mae(summary.p50, truth.b_op, truth.scale, h) for h in HORIZONS},
         "coverage": {h: coverage(summary.p10, summary.p90, truth.b_op, h) for h in HORIZONS},
         "gap": summary.gap_probability, "possible_day": summary.possible_gap_day,
-        "shortfall_p50": summary.shortfall_p50,
+        "shortfall_p50": summary.shortfall_p50, "likely_day": summary.likely_gap_day,
     }
 
 

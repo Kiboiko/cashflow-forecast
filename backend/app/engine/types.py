@@ -21,7 +21,7 @@ class Settings:
     threshold: float = 0.0              # неснижаемый остаток
     overdraft_limit: float = 0.0
     risk_yellow: float = 0.10
-    risk_red: float = 0.40
+    risk_red: float = 0.35              # выбран по F1 на отсечках настройки (§7.1)
     other_accounts: list[dict] = field(default_factory=list)       # [{"bank": ..., "balance": ...}]
     include_other_accounts: bool = False                           # «считать все счета»
     include_owner_withdrawals: bool = True

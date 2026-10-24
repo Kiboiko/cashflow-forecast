@@ -332,7 +332,7 @@ class BusinessSettings(Schema):
     threshold: float = Field(default=0.0, ge=0)                 # неснижаемый остаток
     overdraft_limit: float = Field(default=0.0, ge=0)
     risk_yellow: float = Field(default=0.10, gt=0, lt=1)
-    risk_red: float = Field(default=0.40, gt=0, lt=1)
+    risk_red: float = Field(default=0.35, gt=0, lt=1)
     other_accounts: list[OtherAccount] = []
     include_other_accounts: bool = False
     include_owner_withdrawals: bool = True

@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from app.engine.backtest import (
+    RED_PROB,
     actual_flows,
     build_truth,
     coverage,
@@ -83,6 +84,16 @@ def test_summarize_gap_probability_by_horizon_and_possible_day():
     assert s.gap_probability[30] == pytest.approx(0.4) and s.gap_probability[7] == 0.0
     assert s.gap_probability[14] == pytest.approx(0.4) and s.possible_gap_day == 11
     assert s.shortfall_p50 == 50.0
+
+
+def test_likely_gap_day_and_red_rule_like_the_product():
+    # 60% сценариев уходят в минус с 5-го дня: вероятная дата (P ≥ 0,5) — 5-й день, это «красный» по правилу 7 дней
+    paths = np.vstack([np.full(30, 100.0)] * 4 + [np.r_[np.full(4, 100.0), np.full(26, -50.0)]] * 6)
+    s = summarize(paths)
+    assert s.possible_gap_day == 5 and s.likely_gap_day == 5
+    assert summarize(np.full((5, 30), 100.0)).likely_gap_day is None
+    m = detection_metrics(np.array([1, 1, 0]), np.array([0.2, 0.5, 0.1]), RED_PROB, pred=np.array([True, True, False]))
+    assert (m["precision"], m["recall"]) == (1.0, 1.0)                       # решение — по правилу, а не по порогу
 
 
 def test_metrics():

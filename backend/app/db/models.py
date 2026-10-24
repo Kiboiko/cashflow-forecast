@@ -33,7 +33,7 @@ from app.db.base import Base
 Money = Numeric(18, 2, asdecimal=False)
 
 DEFAULT_SETTINGS: dict[str, Any] = {
-    "horizon_days": 30, "threshold": 0.0, "overdraft_limit": 0.0, "risk_yellow": 0.10, "risk_red": 0.40,
+    "horizon_days": 30, "threshold": 0.0, "overdraft_limit": 0.0, "risk_yellow": 0.10, "risk_red": 0.35,
     "other_accounts": [], "include_other_accounts": False, "include_owner_withdrawals": True,
 }
 

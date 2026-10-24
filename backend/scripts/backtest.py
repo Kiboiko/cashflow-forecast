@@ -26,6 +26,7 @@ from app.engine.backtest import (
     HORIZONS,
     NAIVE,
     RED_PROB,
+    RED_WITHIN_DAYS,
     SEASONAL_NAIVE,
     STRUCTURAL,
     STRUCTURAL_CAL,
@@ -117,7 +118,8 @@ def aggregate(points: list[dict]) -> dict:
                 "rel_mae_mean": float(np.mean([p["rows"][name]["rel_mae"][h] for p in points])),
                 "interval_coverage": float(np.mean([p["rows"][name]["coverage"][h] for p in points])),
                 "detection": detection_metrics(y, gap),
-                "detection_red": detection_metrics(y, gap, RED_PROB),
+                "detection_red": detection_metrics(y, gap, RED_PROB, pred=(gap >= RED_PROB) | np.array(
+                    [(p["rows"][name].get("likely_day") or 99) <= RED_WITHIN_DAYS for p in points])),
                 "lead_days_median": _median([p["first_gap"] for p in caught]),
                 "date_error_days_median": _median([abs(p["rows"][name]["possible_day"] - p["first_gap"])
                                                    for p in caught if p["rows"][name]["possible_day"]]),
@@ -223,7 +225,8 @@ def markdown(report: dict) -> str:
                f"медиана {m30['date_error_days_median']} дн.; ошибка суммы нехватки — "
                f"{fmt(m30['shortfall_error_rel_median'])} от масштаба остатка.")
     levels = (f"Уровни риска: жёлтый (шанс ≥{YELLOW_PROB:.0%}) — precision {fmt(yellow['precision'], True)}, "
-              f"recall {fmt(yellow['recall'], True)}; красный (шанс ≥{RED_PROB:.0%}) — "
+              f"recall {fmt(yellow['recall'], True)}; красный (шанс ≥{RED_PROB:.0%} или разрыв вероятен в ближайшие "
+              f"{RED_WITHIN_DAYS} дней — как в продукте) — "
               f"precision {fmt(red['precision'], True)}, recall {fmt(red['recall'], True)}.")
     ablation = test_report["external_ablation"]
     lines += ["", summary, "", levels, ""]
