@@ -130,11 +130,17 @@ alerts = build_alerts(result, state.ops, prev["risk"], matches)   # чернов
 Скорость: подготовка данных после дозагрузки 0,20 → 0,09 с, весь путь «новые данные → готовый прогноз с рекомендациями»
 0,39 → 0,29 с (12 самых длинных выписок; `reports/update_timing.md`).
 
+## 6а. Данные банка и журнал расчёта
+
+`state.forecast(..., bank=payload)` — ответ банка (графики кредитов, реестр зарплатного проекта, неисполненные платёжки; формат — в `engine/bank.py`). События получают источник `bank_mock` и заменяют регулярные платежи тех же категорий из истории. В демо `bank.demo_bank_payload(full_ops, as_of)` восстанавливает ответ банка из скрытой части выписки (сервис делает это сам в `ForecastService.bank`).
+
+`trace.trace_forecast(model, result)` — 13 строк «как построен прогноз»: данные, качество, категории, регулярные платежи, налоги, выручка, прочие потоки, план, Монте-Карло, риск, покрытие платежей, объяснение, советы (без ИНН и названий).
+
 ## 7. Отчёт бэктеста для страницы «Как мы считаем»
 
 `reports/backtest_<дата>.json` (берите самый свежий файл) — ключи: `cutoffs`, `test.approaches.<подход>.horizons.<7|14|30>`
 (`rel_mae_median`, `interval_coverage`, `detection.{roc_auc,pr_auc,precision,recall}`, `lead_days_median`,
-`date_error_days_median`), `test.reliability_30d` и `test.reliability_30d_calibrated` (диаграмма надёжности: «говорим 30% —
+`date_error_days_median`; у `detection` и `detection_red` ещё `tp, fp, fn, tn, accuracy, specificity, f1, brier`; у горизонта — `mae_rub_mean, rmse_rub, mse_rub2, wape`), `test.reliability_30d` и `test.reliability_30d_calibrated` (диаграмма надёжности: «говорим 30% —
 бывает 30%»), `test.external_ablation`, `test.flows_wape_30d`, `test.by_industry`. Таблица для слайда — `reports/backtest.md`,
 картинки — `reports/figures/*.png`. Пересчёт: `uv run python scripts/backtest.py` (≈2,5 мин).
 
