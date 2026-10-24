@@ -446,3 +446,125 @@ class RecurringOut(Schema):
     mandatory: bool
     counterparty: str | None = None
     explain: str
+
+
+# ---------- план: события, счета и договоры ----------
+class EventOut(Schema):
+    id: int
+    kind: EventKind
+    source: str                                     # manual | csv | 1c | demo_accounting | contract_detected | …
+    direction: Direction
+    amount: float
+    expected_date: Date | None = None
+    due_date: Date | None = None
+    doc_type: str | None = None
+    doc_no: str | None = None
+    doc_date: Date | None = None
+    counterparty_inn: str | None = None
+    counterparty_name: str | None = None
+    title: str
+    probability: float
+    mandatory: bool
+    status: EventStatus
+
+
+class EventPatch(Schema):
+    """Правка события плана: меняем только то, что передано."""
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    amount: float | None = Field(default=None, gt=0)
+    date: Date | None = None
+    probability: float | None = Field(default=None, ge=0, le=1)
+    mandatory: bool | None = None
+    counterparty_name: str | None = None
+
+
+class EventsImportResult(Schema):
+    kind: Literal["invoices", "contracts"]
+    added: int
+    skipped: int                                    # уже были в плане
+    errors: list[str] = []
+    accounting_source: str | None = None
+
+
+# ---------- «Вам должны» / «Вы должны» ----------
+class ReceivableInvoice(Schema):
+    doc_no: str
+    doc_date: Date
+    amount: float
+    age_days: int
+    expected_from: Date                             # оплата вероятна не раньше (10-й процентиль)
+    expected_to: Date                               # …и не позже (90-й процентиль)
+    overdue_by_client_standard: bool                # счёту больше, чем клиент обычно тянет
+
+
+class ReceivableRow(Schema):
+    counterparty_inn: str | None = None
+    counterparty: str | None = None
+    open_amount: float
+    typical_delay_days: float                       # «обычно платит через 18±6 дн.»
+    delay_spread_days: float
+    profile_level: Literal["client", "company", "industry", "default"]
+    overdue_amount: float
+    invoices: list[ReceivableInvoice]
+
+
+class ReceivablesResponse(Schema):
+    direction: Direction
+    connected: bool                                 # подключён ли источник счетов
+    source: str | None = None
+    source_label: str | None = None
+    as_of: Date
+    total: float
+    overdue_total: float
+    rows: list[ReceivableRow]
+
+
+# ---------- «что если» ----------
+class ScenarioPreset(Schema):
+    id: str
+    title: str
+    description: str
+    request: ScenarioRequest
+
+
+class ScenarioPresets(Schema):
+    presets: list[ScenarioPreset]
+
+
+# ---------- снимки, машина времени ----------
+class SnapshotBrief(Schema):
+    id: int
+    as_of: Date
+    horizon: int
+    level: RiskLevel
+    gap_probability: float
+    created_at: DateTime
+
+
+class ReplayAdvanceRequest(Schema):
+    days: int = Field(default=1, ge=1, le=14)
+
+
+class ReplayResetRequest(Schema):
+    as_of: Date | None = None                       # по умолчанию — исходная дата демо (31.07.2026)
+
+
+class ReplayResult(Schema):
+    as_of: Date
+    previous_as_of: Date
+    new_operations: int
+    level: RiskLevel
+    gap_probability: float
+    gap_probability_before: float | None = None
+    headline: str
+    alerts: list[Alert]                             # новые предупреждения этого шага
+    snapshot_id: int
+    data_until: Date
+    can_advance: bool
+
+
+# ---------- отчёт бэктеста ----------
+class BacktestReport(Schema):
+    """Отчёт A (`reports/backtest_<дата>.json`) как есть: структуру разбирает страница «Как мы считаем»."""
+    file: str
+    report: dict

@@ -13,10 +13,13 @@ import json
 import threading
 from collections import OrderedDict
 from collections.abc import Hashable
-from datetime import date
+from dataclasses import replace
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
+from types import SimpleNamespace
 
+import pandas as pd
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -25,19 +28,26 @@ from app.db.models import Business, ExpectedEvent, ForecastSnapshot
 from app.engine.categorize import categorize
 from app.engine.categorize.taxonomy import TAXONOMY
 from app.engine.enrich import enrich
+from app.engine.normalize import norm_text
 from app.engine.pipeline import run_scenario
 from app.engine.plan import manual_event
 from app.engine.planfact import make_snapshot
 from app.engine.receivables import Invoice, restore_open_documents
 from app.engine.recurring import SALARY_TITLE, detect_streams
 from app.engine.response import to_response, to_scenario_response
+from app.engine.scenarios import largest_client
 from app.engine.state import EngineState
 from app.engine.types import ForecastResult, PlannedEvent
 from app.schemas import (
     DataQuality,
     EventCreate,
     ForecastResponse,
+    ReceivableInvoice,
+    ReceivableRow,
+    ReceivablesResponse,
     RecurringOut,
+    ScenarioPreset,
+    ScenarioPresets,
     ScenarioRequest,
     ScenarioResponse,
 )
@@ -46,6 +56,9 @@ from app.services.engine_adapter import NoDataError, load_context, load_ops, loa
 
 _WEEKDAYS_DAT = ["понедельникам", "вторникам", "средам", "четвергам", "пятницам", "субботам", "воскресеньям"]
 _MAX_DATE = date(9999, 12, 31)
+SOURCE_LABELS = {"demo_accounting": "Демо-данные учётной системы (восстановлены из выписки)", "csv": "Файл со счетами",
+                 "1c": "1С"}
+PAID_SHARE = 0.95                    # счёт, оплаченный на 95% и больше, открытым не считаем
 
 
 @lru_cache
@@ -180,9 +193,27 @@ class ForecastService:
         rows = db.scalars(select(ExpectedEvent).where(
             ExpectedEvent.business_id == business.id, ExpectedEvent.kind.in_(("invoice_out", "bill_in")),
             ExpectedEvent.status.in_(("planned", "overdue", "partially"))).order_by(ExpectedEvent.id)).all()
-        return [Invoice(doc_no=e.doc_no or str(e.id), doc_date=e.doc_date or as_of, direction=e.direction, amount=e.amount,
-                        counterparty_inn=e.counterparty_inn, counterparty_name=e.counterparty_name,
-                        doc_type=e.doc_type or "invoice", due_date=e.due_date, source=e.source) for e in rows]
+        invoices = [Invoice(doc_no=e.doc_no or str(e.id), doc_date=e.doc_date or as_of, direction=e.direction, amount=e.amount,
+                            counterparty_inn=e.counterparty_inn, counterparty_name=e.counterparty_name,
+                            doc_type=e.doc_type or "invoice", due_date=e.due_date, source=e.source) for e in rows]
+        return self._net_open(invoices, self.state(db, business).ops)
+
+    @staticmethod
+    def _net_open(invoices: list[Invoice], ops: pd.DataFrame) -> list[Invoice]:
+        """Счета из файла, по которым выписка уже показывает оплату (тот же документ и контрагент), не открыты;
+        частично оплаченный счёт остаётся на остаток."""
+        if ops.empty or "doc_no" not in ops:
+            return invoices
+        doc_no = ops["doc_no"].astype("string").str.lower()
+        out: list[Invoice] = []
+        for inv in invoices:
+            sign = 1 if inv.direction == "in" else -1
+            party = inv.counterparty_inn or norm_text(inv.counterparty_name)
+            paid = ops.loc[(ops["direction"] == sign) & (doc_no == inv.doc_no.lower()) & (ops["cp_key"] == party), "amount"].sum()
+            if paid >= PAID_SHARE * inv.amount:
+                continue
+            out.append(replace(inv, amount=round(inv.amount - float(paid), 2)) if paid > 0 else inv)
+        return out
 
     # ---------- прогноз ----------
     def result(self, db: Session, business: Business, horizon: int) -> ForecastResult:
@@ -228,6 +259,53 @@ class ForecastService:
             response = to_scenario_response(base, scenario, request.shocks)
             self._scenarios.put(key, response)
             return response
+
+    def scenario_presets(self, db: Session, business: Business) -> ScenarioPresets:
+        """Четыре кнопки «что если» с понятными числами: крупнейший клиент берётся из выписки бизнеса."""
+        state = self.state(db, business)
+        as_of = state.as_of
+        key = largest_client(SimpleNamespace(ops=state.ops, as_of=as_of))              # type: ignore[arg-type]
+        presets: list[ScenarioPreset] = []
+        if key is not None:
+            names = state.ops.loc[state.ops["cp_key"] == key, "counterparty_name"].dropna()
+            who = str(names.iloc[0]) if len(names) else "Крупнейший клиент"
+            presets.append(ScenarioPreset(
+                id="client_delay", title="Клиент заплатит позже", description=f"{who} заплатит на 3 недели позже обычного",
+                request=ScenarioRequest.model_validate({"horizon_days": 30, "shocks": [
+                    {"type": "client_delay", "counterparty_inn": key, "delay_days": 21}]})))
+        presets += [
+            ScenarioPreset(id="revenue_drop", title="Выручка упадёт", description="Выручка станет на 20% ниже обычной со следующего дня",
+                           request=ScenarioRequest.model_validate({"horizon_days": 30, "shocks": [
+                               {"type": "revenue_drop", "pct": 20, "from": (as_of + timedelta(days=1)).isoformat()}]})),
+            ScenarioPreset(id="one_off_expense", title="Неожиданный расход", description="Ремонт оборудования на 150 000 ₽ через 12 дней",
+                           request=ScenarioRequest.model_validate({"horizon_days": 30, "shocks": [
+                               {"type": "one_off_expense", "amount": 150000, "date": (as_of + timedelta(days=12)).isoformat(),
+                                "title": "Ремонт оборудования"}]})),
+            ScenarioPreset(id="fixed_cost_increase", title="Расходы вырастут", description="Аренда и закупки подорожают на 10%",
+                           request=ScenarioRequest.model_validate({"horizon_days": 30, "shocks": [
+                               {"type": "fixed_cost_increase", "pct": 10, "categories": ["rent", "suppliers"]}]})),
+        ]
+        return ScenarioPresets(presets=presets)
+
+    # ---------- «Вам должны» ----------
+    def receivables(self, db: Session, business: Business, direction: str) -> ReceivablesResponse:
+        state = self.state(db, business)
+        invoices = self.invoices(db, business, state.as_of)
+        if invoices is None:
+            return ReceivablesResponse(direction=direction, connected=False, as_of=state.as_of, total=0.0, overdue_total=0.0, rows=[])
+        rows = [ReceivableRow(
+            counterparty_inn=r["counterparty_inn"], counterparty=r["counterparty"], open_amount=round(r["open_amount"], 2),
+            typical_delay_days=round(r["typical_delay_days"], 1), delay_spread_days=round(r["delay_spread_days"], 1),
+            profile_level=r["profile_level"], overdue_amount=round(r["overdue_amount"], 2),
+            invoices=[ReceivableInvoice(
+                doc_no=i["doc_no"], doc_date=i["doc_date"], amount=round(i["amount"], 2), age_days=i["age_days"],
+                expected_from=i["expected_from"], expected_to=i["expected_to"],
+                overdue_by_client_standard=bool(i["overdue_by_client_standard"])) for i in r["invoices"]])
+            for r in state.receivables(invoices, direction)]
+        return ReceivablesResponse(
+            direction=direction, connected=True, source=business.accounting_source,
+            source_label=SOURCE_LABELS.get(business.accounting_source or "", business.accounting_source), as_of=state.as_of,
+            total=round(sum(r.open_amount for r in rows), 2), overdue_total=round(sum(r.overdue_amount for r in rows), 2), rows=rows)
 
     # ---------- регулярные платежи ----------
     def recurring(self, db: Session, business: Business) -> list[RecurringOut]:
