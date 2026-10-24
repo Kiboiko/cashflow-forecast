@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+
+/* Токены. Палитра диаграмм — проверенная валидатором dataviz (слоты 1–2 и статусные цвета); тёмная тема —
+   отдельные ступени тех же оттенков, а не инверсия. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f2f1ed;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781; /* только подписи осей и разделители: контраст ниже 4,5:1 */
+  --line: #e1e0d9;
+  --line-2: #c3c2b7;
+  --accent: #2a78d6; /* ряд 1: ожидаемый остаток, план */
+  --accent-ink: #1c5cab;
+  --accent-soft: rgb(42 120 214 / 0.1);
+  --series-2: #eb6834; /* ряд 2: факт, сценарий «что если» */
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --good-soft: #e4f4e4;
+  --warn: #fab219;
+  --warn-ink: #6b4a00;
+  --warn-soft: #fff1cc;
+  --crit: #d03b3b;
+  --crit-ink: #a12a2a;
+  --crit-soft: #fbe5e5;
+  --weekend: rgb(11 11 11 / 0.035);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #242423;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --line: #2c2c2a;
+    --line-2: #383835;
+    --accent: #3987e5;
+    --accent-ink: #86b6ef;
+    --accent-soft: rgb(57 135 229 / 0.16);
+    --series-2: #d95926;
+    --good-ink: #5fd35f;
+    --good-soft: #14301a;
+    --warn-ink: #fab219;
+    --warn-soft: #33280a;
+    --crit-ink: #f19a9a;
+    --crit-soft: #3a1818;
+    --weekend: rgb(255 255 255 / 0.04);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #242423;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --line: #2c2c2a;
+  --line-2: #383835;
+  --accent: #3987e5;
+  --accent-ink: #86b6ef;
+  --accent-soft: rgb(57 135 229 / 0.16);
+  --series-2: #d95926;
+  --good-ink: #5fd35f;
+  --good-soft: #14301a;
+  --warn-ink: #fab219;
+  --warn-soft: #33280a;
+  --crit-ink: #f19a9a;
+  --crit-soft: #3a1818;
+  --weekend: rgb(255 255 255 / 0.04);
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-series2: var(--series-2);
+  --color-good: var(--good);
+  --color-good-ink: var(--good-ink);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-ink: var(--crit-ink);
+  --color-crit-soft: var(--crit-soft);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Подсветка фокуса с клавиатуры — на всех интерактивных элементах */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Числа в таблицах и подписях осей выравниваем по разрядам; крупные цифры остаются пропорциональными */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
