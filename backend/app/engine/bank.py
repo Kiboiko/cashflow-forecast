@@ -27,7 +27,7 @@ PAYROLL_LOOKAHEAD_DAYS = 7               # реестр зарплатного �
 PENDING_WORKDAYS = 2                     # платёжки, созданные сегодня, банк исполняет в ближайшие 1–2 рабочих дня
 DATE_MATCH_DAYS = 5                      # платёжка и регулярный платёж той же категории ±5 дней — это одно и то же
 AMOUNT_MATCH = 0.10
-NOT_PENDING = {"salary", "tax_enp", "loan_repayment"}  # их банк отдаёт отдельно (зарплатный проект, график кредита, налоги)
+NOT_PENDING = {"salary", "tax_enp", "loan_repayment", "bank_fees"}  # отдельно у банка: зарплатный проект, кредит, налоги; комиссии банк списывает сам
 
 
 def _day(value) -> date:
