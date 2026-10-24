@@ -81,7 +81,7 @@ def train_m2_at(cat: pd.DataFrame, industry: pd.Series, codes: dict[str, int], c
     return train_revenue_m2(items)
 
 
-def build_contexts(ops_all: pd.DataFrame, companies: pd.DataFrame, cutoffs: list[date]) -> dict:
+def build_contexts(ops_all: pd.DataFrame, companies: pd.DataFrame, cutoffs: list[date], with_m2: bool = True) -> dict:
     """{компания: {отсечка: Context}} на данных ≤ отсечки (отраслевая сезонность, индекс ЕНП)."""
     cat = enrich(categorize(ops_all))
     industry = companies.set_index("company_id")["industry"]
@@ -91,7 +91,7 @@ def build_contexts(ops_all: pd.DataFrame, companies: pd.DataFrame, cutoffs: list
         seasons = compute_industry_season(cat, companies, cutoff)
         enp = compute_enp_index(cat, cutoff)
         delays = industry_profiles(cat, companies, cutoff)
-        m2 = train_m2_at(cat, industry, codes, cutoff)
+        m2 = train_m2_at(cat, industry, codes, cutoff) if with_m2 else None
         for cid in out:
             out[cid][cutoff] = Context(industry_season=seasons.get(industry.get(cid)), enp_index=enp,
                                        industry_delays=delays.get(industry.get(cid)), revenue_m2=m2,
@@ -104,16 +104,29 @@ def _median(values):
     return float(np.median(values)) if values else None
 
 
-def aggregate(points: list[dict]) -> dict:
+def error_summary(errors: list[dict]) -> dict:
+    """MAE, MSE, RMSE в рублях по точкам (среднее и медиана MAE) и WAPE = Σ|ошибка| / Σ|факт|."""
+    if not errors:
+        return {}
+    mae = np.array([e["mae"] for e in errors])
+    mse = np.array([e["mse"] for e in errors])
+    actual = sum(e["abs_actual"] for e in errors)
+    return {"mae_rub_mean": float(mae.mean()), "mae_rub_median": float(np.median(mae)), "mse_rub2": float(mse.mean()),
+            "rmse_rub": float(np.sqrt(mse.mean())), "wape": float(mae.sum() / actual) if actual > 0 else None}
+
+
+def aggregate(points: list[dict], names: list[str] | None = None) -> dict:
     """Метрики по подходам и горизонтам для набора точек (компания × отсечка)."""
     result = {}
-    for name in TITLES:
+    for name in names or [n for n in TITLES if points and n in points[0]["rows"]]:
         per_h = {}
         for h in HORIZONS:
             y = np.array([p["y"][h] for p in points])
             gap = np.array([p["rows"][name]["gap"][h] for p in points])
             caught = [p for p in points if p["y"][h] and p["rows"][name]["gap"][h] >= YELLOW_PROB]
+            errors = [p["rows"][name]["errors"][h] for p in points if "errors" in p["rows"][name]]
             per_h[str(h)] = {
+                **error_summary(errors),
                 "rel_mae_median": _median([p["rows"][name]["rel_mae"][h] for p in points]),
                 "rel_mae_mean": float(np.mean([p["rows"][name]["rel_mae"][h] for p in points])),
                 "interval_coverage": float(np.mean([p["rows"][name]["coverage"][h] for p in points])),
@@ -189,6 +202,51 @@ def by_industry(points: list[dict], industry: dict[str, str]) -> dict:
     return {k: {"n": len(v), "rel_mae_median": float(np.median(v))} for k, v in sorted(rows.items())}
 
 
+def rub0(v: float | None) -> str:
+    return "—" if v is None else f"{v:,.0f} ₽".replace(",", " ")
+
+
+def classification_table(m30: dict) -> list[str]:
+    """Матрица ошибок и метрики классификации «будет ли разрыв в 30 дней» для жёлтого и красного уровня."""
+    def f(v, pct=True):
+        return "—" if v is None else (f"{v:.1%}" if pct else f"{v:.3f}")
+
+    lines = ["| Уровень тревоги | TP | FP | FN | TN | Accuracy | Precision | Recall | Specificity | F1 | Balanced acc. |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for key, title in (("detection", f"жёлтый: шанс ≥{YELLOW_PROB:.0%}"),
+                       ("detection_red", f"красный: шанс ≥{RED_PROB:.0%} или разрыв вероятен ≤{RED_WITHIN_DAYS} дн.")):
+        d = m30[key]
+        lines.append(f"| {title} | {d['tp']} | {d['fp']} | {d['fn']} | {d['tn']} | {f(d['accuracy'])} | {f(d['precision'])} | "
+                     f"{f(d['recall'])} | {f(d['specificity'])} | {f(d['f1'], False)} | {f(d['balanced_accuracy'])} |")
+    return lines
+
+
+def draw_confusion(m30: dict, path: Path) -> None:
+    """Две матрицы ошибок (жёлтый и красный уровень) с Accuracy, Precision, Recall, F1 в подписях."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2))
+    for ax, key, title in zip(axes, ("detection", "detection_red"),
+                              (f"Жёлтый уровень (шанс ≥{YELLOW_PROB:.0%})",
+                               f"Красный уровень (≥{RED_PROB:.0%} или ≤{RED_WITHIN_DAYS} дн.)"), strict=True):
+        d = m30[key]
+        matrix = np.array([[d["tn"], d["fp"]], [d["fn"], d["tp"]]])
+        ax.imshow(matrix, cmap="Greens")
+        for (i, j), v in np.ndenumerate(matrix):
+            ax.text(j, i, str(v), ha="center", va="center", fontsize=16, color="white" if v > matrix.max() / 2 else "black")
+        ax.set_xticks([0, 1], ["нет тревоги", "тревога"])
+        ax.set_yticks([0, 1], ["разрыва не было", "разрыв был"])
+        ax.set_title(f"{title}\nAccuracy {d['accuracy']:.0%} · Precision {d['precision'] or 0:.0%} · "
+                     f"Recall {d['recall'] or 0:.0%} · F1 {d['f1'] or 0:.2f}", fontsize=9)
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
 def markdown(report: dict) -> str:
     test_report = report["test"]
     test = report["test"]["approaches"]
@@ -230,6 +288,13 @@ def markdown(report: dict) -> str:
               f"precision {fmt(red['precision'], True)}, recall {fmt(red['recall'], True)}.")
     ablation = test_report["external_ablation"]
     lines += ["", summary, "", levels, ""]
+    s30 = test[STRUCTURAL_CAL]["horizons"]["30"]
+    lines += ["## Матрица ошибок и метрики классификации (итоговая модель, разрыв в ближайшие 30 дней)", "",
+              *classification_table(s30), "",
+              f"ROC-AUC {fmt(s30['detection']['roc_auc'])}, Brier score {s30['detection'].get('brier', 0):.3f}. "
+              f"Ошибка остатка в рублях: MAE {rub0(s30.get('mae_rub_mean'))} (медиана по компаниям "
+              f"{rub0(s30.get('mae_rub_median'))}), RMSE {rub0(s30.get('rmse_rub'))}, WAPE {fmt(s30.get('wape'), True)}.",
+              "", "![Матрицы ошибок](figures/confusion.png)", ""]
     lines += ["## Выручка: M0, M1 и M2 (бустинг)", "",
               "Ошибка прогноза 30-дневной выручки (WAPE и смещение прогноза к факту; меньше — лучше). Метод выбираем по отсечкам "
               "настройки, тест — проверка. Данные начинаются в октябре 2024: на отсечках настройки у бустинга "
@@ -274,6 +339,7 @@ def draw_figures(report: dict, points_test: list[dict], demo: list[dict], out: P
     import matplotlib.pyplot as plt
 
     out.mkdir(parents=True, exist_ok=True)
+    draw_confusion(report["test"]["approaches"][STRUCTURAL_CAL]["horizons"]["30"], out / "confusion.png")
     names = [NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_M2, STRUCTURAL_CAL, STRUCTURAL_EXT]
     labels = ["Наивный", "Сезонно-\nнаивный", "Структ.\n(M0)", "Структ.\n(M1)", "Структ.\n+ бустинг\n(M2)", "Структ.\n+калибр.",
               "+ внешние\nданные"]

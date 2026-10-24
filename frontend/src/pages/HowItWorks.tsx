@@ -3,9 +3,9 @@ import { lazy, Suspense, useMemo } from 'react'
 import { useBacktest } from '../api/hooks'
 import { useCurrentBusiness } from '../auth'
 import { Badge, Card, EmptyState, ErrorBlock, Hint, SectionTitle, Spinner, cx } from '../components/ui'
-import { OUR_APPROACH, parseBacktest, type ApproachRow, type Backtest } from '../lib/backtest'
+import { OUR_APPROACH, parseBacktest, type ApproachRow, type Backtest, type Confusion, type Metrics } from '../lib/backtest'
 import { copy } from '../lib/copy'
-import { dmyLong, pct } from '../lib/format'
+import { dmyLong, pct, rub } from '../lib/format'
 
 const ReliabilityChart = lazy(() => import('../components/chart/ReliabilityChart'))
 
@@ -76,11 +76,85 @@ function ApproachesTable({ rows }: { rows: ApproachRow[] }) {
   )
 }
 
+function MatrixTable({ title, c }: { title: string; c: Confusion }) {
+  const cell = (value: number, good: boolean) => (
+    <td className={cx('tnum px-3 py-2 text-center text-lg font-semibold', good ? 'bg-accent-soft text-ink' : 'bg-surface-2 text-ink-2')}>{value}</td>
+  )
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-ink">{title}</h3>
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="text-ink-2">
+            <th scope="col" />
+            <th scope="col" className="px-3 py-1 text-center font-medium">{how.matrix.quiet}</th>
+            <th scope="col" className="px-3 py-1 text-center font-medium">{how.matrix.alarm}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-t border-line">
+            <th scope="row" className="px-3 py-2 text-left font-normal text-ink-2">{how.matrix.no}</th>
+            {cell(c.tn, true)}
+            {cell(c.fp, false)}
+          </tr>
+          <tr className="border-t border-line">
+            <th scope="row" className="px-3 py-2 text-left font-normal text-ink-2">{how.matrix.yes}</th>
+            {cell(c.fn, false)}
+            {cell(c.tp, true)}
+          </tr>
+        </tbody>
+      </table>
+      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+        {(['accuracy', 'precision', 'recall', 'specificity'] as const).map((key) => (
+          <div key={key} className="flex justify-between gap-2">
+            <dt className="text-ink-2">{key === 'accuracy' ? 'Accuracy' : key === 'precision' ? 'Precision' : key === 'recall' ? 'Recall' : 'Specificity'}</dt>
+            <dd className="tnum text-ink">{c[key] != null ? pct(c[key]!) : '—'}</dd>
+          </div>
+        ))}
+        <div className="flex justify-between gap-2">
+          <dt className="text-ink-2">F1</dt>
+          <dd className="tnum text-ink">{c.f1 != null ? c.f1.toFixed(2) : '—'}</dd>
+        </div>
+      </dl>
+    </div>
+  )
+}
+
+function MetricsCard({ m }: { m: Metrics }) {
+  const rows: Array<[string, string]> = [
+    [how.metricNames.rocAuc, m.rocAuc != null ? m.rocAuc.toFixed(2) : '—'],
+    [how.metricNames.brier, m.brier != null ? m.brier.toFixed(3) : '—'],
+    [how.metricNames.mae, m.maeRub != null ? `${rub(m.maeRub)}${m.maeRubMedian != null ? ` (медиана ${rub(m.maeRubMedian)})` : ''}` : '—'],
+    [how.metricNames.rmse, m.rmseRub != null ? rub(m.rmseRub) : '—'],
+    [how.metricNames.mse, m.mseRub2 != null ? m.mseRub2.toExponential(2) : '—'],
+    [how.metricNames.wape, m.wape != null ? pct(m.wape) : '—'],
+  ]
+  return (
+    <Card aria-labelledby="metrics-title">
+      <SectionTitle id="metrics-title">{how.metricsTitle}</SectionTitle>
+      <p className="-mt-2 mb-4 text-sm text-ink-2">{how.metricsLead}</p>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <MatrixTable title={how.levelYellow} c={m.yellow} />
+        {m.red && <MatrixTable title={how.levelRed} c={m.red} />}
+      </div>
+      <dl className="mt-5 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-3 border-b border-line py-1">
+            <dt className="text-ink-2">{label}</dt>
+            <dd className="tnum whitespace-nowrap text-ink">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
+  )
+}
+
 function Quality({ report, industry }: { report: Backtest; industry?: string | null }) {
   const reliability = report.reliability
   const maxError = Math.max(...report.industries.map((i) => i.relError), 0.01)
   return (
     <div className="space-y-4">
+      {report.dataset && <p className="rounded-xl bg-accent-soft px-4 py-3 font-medium text-ink">{how.controlDataset(report.dataset)}</p>}
       <p className="text-ink-2">{how.qualityLead(report.points, report.companies, dmyLong(report.cutoffFrom), dmyLong(report.cutoffTo))}</p>
 
       <Card aria-labelledby="approaches-title">
@@ -102,6 +176,8 @@ function Quality({ report, industry }: { report: Backtest; industry?: string | n
           </>
         )}
       </Card>
+
+      {report.metrics && <MetricsCard m={report.metrics} />}
 
       {reliability.length > 0 && (
         <Card aria-labelledby="reliability-title">

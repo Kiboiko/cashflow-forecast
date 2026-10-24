@@ -53,6 +53,27 @@ describe('parseBacktest', () => {
     expect(report.ablation).toMatchObject({ clientBefore: 0.18, clientAfter: 0.17, share: 0.4 })
   })
 
+  it('достаёт матрицы ошибок, метрики и пометку контрольного датасета', () => {
+    const at30 = {
+      ...horizon(0.19, 0.78, 0.96, 0.43),
+      detection: { recall: 0.96, precision: 0.43, roc_auc: 0.94, pr_auc: 0.8, brier: 0.063, tp: 113, fp: 152, fn: 5, tn: 495, accuracy: 0.79, specificity: 0.77, f1: 0.59 },
+      detection_red: { recall: 0.62, precision: 0.74, tp: 73, fp: 25, fn: 45, tn: 622, accuracy: 0.91, specificity: 0.96, f1: 0.68 },
+      mae_rub_mean: 1_250_000, mae_rub_median: 210_000, rmse_rub: 3_400_000, mse_rub2: 1.2e13, wape: 0.31,
+    }
+    const control = {
+      ...sample,
+      control: { dataset: 'control', period: ['2025-01-01', '2026-06-30'] },
+      test: { ...sample.test, approaches: { [OUR_APPROACH]: { title: 'Итоговая', horizons: { '30': at30 } } } },
+    }
+    const report = parseBacktest(control)!
+    expect(report.dataset).toBe('control (2025-01-01 — 2026-06-30)')
+    expect(report.metrics?.yellow).toMatchObject({ tp: 113, fn: 5, accuracy: 0.79, f1: 0.59 })
+    expect(report.metrics?.red).toMatchObject({ tp: 73, precision: 0.74 })
+    expect(report.metrics).toMatchObject({ rocAuc: 0.94, brier: 0.063, maeRub: 1_250_000, rmseRub: 3_400_000, wape: 0.31 })
+    expect(parseBacktest(sample)!.metrics).toBeNull()                   // старый отчёт без матрицы — карточку не показываем
+    expect(parseBacktest(sample)!.dataset).toBeNull()
+  })
+
   it('не падает на чужом формате', () => {
     expect(parseBacktest(null)).toBeNull()
     expect(parseBacktest({})).toBeNull()

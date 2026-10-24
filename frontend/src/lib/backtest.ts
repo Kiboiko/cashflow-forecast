@@ -24,7 +24,36 @@ export interface ReliabilityPoint {
   n: number
 }
 
+/** Матрица ошибок «был ли разрыв в 30 дней» × «подняли ли тревогу» и метрики классификации. */
+export interface Confusion {
+  tp: number
+  fp: number
+  fn: number
+  tn: number
+  accuracy: number | null
+  precision: number | null
+  recall: number | null
+  specificity: number | null
+  f1: number | null
+}
+
+/** Метрики итоговой модели на 30 дней: классификация (жёлтый и красный уровень) и ошибка остатка в рублях. */
+export interface Metrics {
+  yellow: Confusion
+  red: Confusion | null
+  rocAuc: number | null
+  prAuc: number | null
+  brier: number | null
+  maeRub: number | null
+  maeRubMedian: number | null
+  rmseRub: number | null
+  mseRub2: number | null
+  wape: number | null
+}
+
 export interface Backtest {
+  dataset: string | null // контрольный датасет: имя и период; null — датасет разработки
+  metrics: Metrics | null
   generated: string
   companies: number
   points: number
@@ -55,6 +84,31 @@ function horizonRow(horizon: number, data: unknown): HorizonRow | null {
   const precision = num(data.detection.precision)
   if (relError === null || coverage === null || recall === null || precision === null) return null
   return { horizon, relError, coverage, recall, precision }
+}
+
+function confusion(data: unknown): Confusion | null {
+  if (!isObject(data)) return null
+  const [tp, fp, fn, tn] = [num(data.tp), num(data.fp), num(data.fn), num(data.tn)]
+  if (tp === null || fp === null || fn === null || tn === null) return null
+  return { tp, fp, fn, tn, accuracy: num(data.accuracy), precision: num(data.precision), recall: num(data.recall), specificity: num(data.specificity), f1: num(data.f1) }
+}
+
+function metrics(at30: unknown): Metrics | null {
+  if (!isObject(at30)) return null
+  const yellow = confusion(at30.detection)
+  if (!yellow || !isObject(at30.detection)) return null
+  return {
+    yellow,
+    red: confusion(at30.detection_red),
+    rocAuc: num(at30.detection.roc_auc),
+    prAuc: num(at30.detection.pr_auc),
+    brier: num(at30.detection.brier),
+    maeRub: num(at30.mae_rub_mean),
+    maeRubMedian: num(at30.mae_rub_median),
+    rmseRub: num(at30.rmse_rub),
+    mseRub2: num(at30.mse_rub2),
+    wape: num(at30.wape),
+  }
 }
 
 export function parseBacktest(raw: unknown): Backtest | null {
@@ -112,7 +166,13 @@ export function parseBacktest(raw: unknown): Backtest | null {
   }
 
   const cutoffs = isObject(raw.cutoffs) && Array.isArray(raw.cutoffs.test) ? (raw.cutoffs.test as unknown[]).filter((c): c is string => typeof c === 'string') : []
+  const oursAt30 = isObject(oursRaw) && isObject(oursRaw.horizons) ? oursRaw.horizons['30'] : null
+  const control = isObject(raw.control) ? raw.control : null
+  const period = control && Array.isArray(control.period) ? (control.period as unknown[]).filter((d): d is string => typeof d === 'string') : []
+  const dataset = control && typeof control.dataset === 'string' ? `${control.dataset}${period.length === 2 ? ` (${period[0]} — ${period[1]})` : ''}` : null
   return {
+    dataset,
+    metrics: metrics(oursAt30),
     generated: typeof raw.generated === 'string' ? raw.generated : '',
     companies: num(raw.n_companies) ?? 0,
     points: num(test.n_points) ?? 0,

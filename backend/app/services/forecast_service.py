@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from app.config import AppSettings
 from app.db.models import Alert, Business, ExpectedEvent, ForecastSnapshot, User
 from app.engine.alerts import AlertDraft
+from app.engine.bank import demo_bank_payload
 from app.engine.categorize import categorize
 from app.engine.categorize.taxonomy import TAXONOMY
 from app.engine.enrich import enrich
@@ -64,6 +65,7 @@ _WEEKDAYS_DAT = ["понедельникам", "вторникам", "среда
 _MAX_DATE = date(9999, 12, 31)
 SOURCE_LABELS = {"demo_accounting": "Демо-данные учётной системы (восстановлены из выписки)", "csv": "Файл со счетами",
                  "1c": "1С"}
+BANK_HORIZON_DAYS = 90                # ответ банка берём на самый длинный горизонт, движок обрежет
 PAID_SHARE = 0.95                    # счёт, оплаченный на 95% и больше, открытым не считаем
 
 
@@ -195,6 +197,20 @@ class ForecastService:
             self._full_ops.put(key, cached)
         return cached
 
+    def bank(self, db: Session, business: Business, as_of: date) -> dict | None:
+        """Данные банка (★4): графики кредитов, реестр зарплатного проекта, неисполненные платёжки.
+
+        Настоящего банковского API в прототипе нет: в демо-режиме ответ банка восстанавливается из той части выписки,
+        что ещё скрыта «машиной времени» (как демо-учётная система), и подписывается «Данные банка (демо)».
+        """
+        if not self.settings.demo_mode:
+            return None
+        full = self._full_enriched(db, business)
+        if full.empty or full["date"].max().date() <= as_of:          # будущего нет — банку нечего знать сверх выписки
+            return None
+        payload = demo_bank_payload(full, as_of, BANK_HORIZON_DAYS)
+        return payload if payload["loans"] or payload["payroll"] or payload["pending_orders"] else None
+
     def invoices(self, db: Session, business: Business, as_of: date) -> list[Invoice] | None:
         """`None` — источник счетов не подключён; список (даже пустой) — подключён (ENGINE_API §4)."""
         source = business.accounting_source
@@ -237,7 +253,8 @@ class ForecastService:
                 return cached  # type: ignore[return-value]
             state = self.state(db, business)
             result = state.forecast(planned=self.planned(db, business, state.as_of), horizon=horizon,
-                                    invoices=self.invoices(db, business, state.as_of))
+                                    invoices=self.invoices(db, business, state.as_of),
+                                    bank=self.bank(db, business, state.as_of))
             result.simulation = None                   # матрицы сценариев нужны только внутри вызова (ENGINE_API §2)
             self._results.put(key, result)
             return result
@@ -268,7 +285,7 @@ class ForecastService:
                 return cached  # type: ignore[return-value]
             state = self.state(db, business)
             model = state.model(self.planned(db, business, state.as_of), horizon=request.horizon_days,
-                                invoices=self.invoices(db, business, state.as_of))
+                                invoices=self.invoices(db, business, state.as_of), bank=self.bank(db, business, state.as_of))
             base, scenario = run_scenario(model, request.shocks, n_paths=1000)
             response = to_scenario_response(base, scenario, request.shocks)
             self._scenarios.put(key, response)

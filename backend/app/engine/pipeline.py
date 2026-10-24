@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from app.engine import explain
+from app.engine.bank import bank_events, merge_bank
 from app.engine.categorize import categorize
 from app.engine.context import Context
 from app.engine.enrich import enrich
@@ -73,12 +74,14 @@ def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None
                 planned: list[PlannedEvent] | None = None, horizon: int | None = None, seed: int | None = None,
                 user_rules: dict[str, str] | None = None, context: Context | None = None,
                 prepared: Prepared | None = None, revenue_method: str = "m1",
-                invoices: list[Invoice] | None = None) -> Model:
+                invoices: list[Invoice] | None = None, bank: dict | None = None) -> Model:
     """Обучение моделей на операциях ≤ as_of. `ops` — нормализованные операции ОДНОГО бизнеса.
 
     `revenue_method`: "m1" — декомпозиция (основная), "m0" — сезонно-наивная, "m2" — бустинг (нужен `context.revenue_m2`).
     `invoices`: открытые счета из учётной системы, CSV, 1С или ручного ввода (None — источник не подключён).
     Тогда оплаты клиентов и поставщиков ведут явные счета и модель «выставление × задержка», а не недельный бутстрэп.
+    `bank`: ответ банка (графики кредитов, реестр зарплатного проекта, неисполненные платёжки, см. bank.py) — заменяет
+    регулярные платежи тех же категорий, выведенные из истории.
     """
     settings = settings or Settings()
     horizon = horizon or settings.horizon_days
@@ -111,7 +114,8 @@ def build_model(ops: pd.DataFrame, as_of: date, settings: Settings | None = None
         rates = [m for m in (fit_rates(ops_p, as_of, horizon, direction, streams, quality.gaps,
                                        context.industry_season, exclude[direction])
                              for direction in (1, -1)) if m is not None]
-    events = sorted(rec_events + tax_events + planned + plan_events, key=lambda e: (e.date or as_of, e.id))
+    events = merge_bank(rec_events + tax_events + planned + plan_events, bank_events(bank, as_of, horizon))
+    events = sorted(events, key=lambda e: (e.date or as_of, e.id))
     return Model(
         ops=ops_p, quality=quality, as_of=as_of, horizon=horizon, settings=settings,
         seed=stable_seed(ops_p, as_of) if seed is None else seed, context=context,
@@ -173,7 +177,8 @@ def evaluate(model: Model, n_paths: int = 1000, shocks: list | None = None,
     used = [name for name, on in (("recurring", [e for e in events if e.source == "recurring"]),
                                   ("taxes", [e for e in events if e.source == "tax_calendar"]),
                                   ("revenue", model.revenue), ("rates", model.rates),
-                                  ("plan", model.planned), ("invoices", model.future or model.invoices)) if on]
+                                  ("plan", model.planned), ("invoices", model.future or model.invoices),
+                                  ("bank", [e for e in events if e.source == "bank_mock"])) if on]
     return ForecastResult(
         as_of=as_of, horizon=model.horizon, start_balance=model.start_balance,
         threshold=model.settings.effective_threshold, dates=model.dates, p10=p10, p50=p50, p90=p90,

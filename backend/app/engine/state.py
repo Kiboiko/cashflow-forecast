@@ -64,15 +64,16 @@ class EngineState:
                        memory=learn_memory(ops), as_of=as_of)
 
     def model(self, planned: list[PlannedEvent] | None = None, horizon: int | None = None,
-              seed: int | None = None, invoices: list[Invoice] | None = None) -> Model:
-        """Модель для симуляций. `invoices` — открытые счета из учётной системы/CSV (None — источник не подключён)."""
+              seed: int | None = None, invoices: list[Invoice] | None = None, bank: dict | None = None) -> Model:
+        """Модель для симуляций. `invoices` — открытые счета из учётной системы/CSV (None — источник не подключён),
+        `bank` — ответ банка (кредиты, зарплатный проект, неисполненные платёжки; см. bank.py)."""
         return build_model(None, self.as_of, self.settings, planned, horizon, seed, self.user_rules, self.context,
-                           Prepared(self.ops, self.quality), invoices=invoices)
+                           Prepared(self.ops, self.quality), invoices=invoices, bank=bank)
 
     def forecast(self, planned: list[PlannedEvent] | None = None, horizon: int | None = None, n_paths: int = 1000,
                  seed: int | None = None, with_recommendations: bool = True,
-                 invoices: list[Invoice] | None = None) -> ForecastResult:
-        return evaluate(self.model(planned, horizon, seed, invoices), n_paths,
+                 invoices: list[Invoice] | None = None, bank: dict | None = None) -> ForecastResult:
+        return evaluate(self.model(planned, horizon, seed, invoices, bank), n_paths,
                         with_recommendations=with_recommendations)
 
     def receivables(self, invoices: list[Invoice], direction: str = "in") -> list[dict]:

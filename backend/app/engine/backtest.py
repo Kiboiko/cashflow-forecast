@@ -160,11 +160,37 @@ def detection_metrics(y: np.ndarray, score: np.ndarray, threshold: float = YELLO
         "precision": tp / pred.sum() if pred.any() else None,
         "recall": tp / y.sum() if y.sum() else None,
         "roc_auc": None, "pr_auc": None,
+        **confusion(y, pred),
+        "brier": float(np.mean((np.clip(score, 0, 1) - y) ** 2)) if len(y) else None,
     }
     if 0 < y.sum() < len(y):
         out["roc_auc"] = float(roc_auc_score(y, score))
         out["pr_auc"] = float(average_precision_score(y, score))
     return out
+
+
+def confusion(y: np.ndarray, pred: np.ndarray) -> dict:
+    """Матрица ошибок «был ли разрыв» × «подняли ли тревогу» и производные: accuracy, specificity, F1, balanced accuracy."""
+    y, pred = np.asarray(y, dtype=bool), np.asarray(pred, dtype=bool)
+    tp, fp = int((pred & y).sum()), int((pred & ~y).sum())
+    fn, tn = int((~pred & y).sum()), int((~pred & ~y).sum())
+    precision = tp / (tp + fp) if tp + fp else None
+    recall = tp / (tp + fn) if tp + fn else None
+    specificity = tn / (tn + fp) if tn + fp else None
+    return {
+        "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+        "accuracy": (tp + tn) / len(y) if len(y) else None,
+        "specificity": specificity,
+        "f1": 2 * precision * recall / (precision + recall) if precision and recall else 0.0 if tp + fn else None,
+        "balanced_accuracy": (recall + specificity) / 2 if recall is not None and specificity is not None else None,
+    }
+
+
+def balance_errors(p50: np.ndarray, b_op: np.ndarray, h: int) -> dict:
+    """Ошибки ожидаемого остатка в рублях на первых h днях: MAE, MSE, средний модуль факта (для WAPE)."""
+    err = np.asarray(p50[:h], dtype=float) - np.asarray(b_op[:h], dtype=float)
+    return {"mae": float(np.mean(np.abs(err))), "mse": float(np.mean(err ** 2)),
+            "abs_actual": float(np.mean(np.abs(b_op[:h])))}
 
 
 def reliability(score: np.ndarray, y: np.ndarray, bins: int = 10) -> list[dict]:
@@ -228,6 +254,7 @@ def predicted_flows(model) -> dict[str, float]:
 def _approach_row(summary: Summary, truth: Truth) -> dict:
     return {
         "rel_mae": {h: rel_mae(summary.p50, truth.b_op, truth.scale, h) for h in HORIZONS},
+        "errors": {h: balance_errors(summary.p50, truth.b_op, h) for h in HORIZONS},
         "coverage": {h: coverage(summary.p10, summary.p90, truth.b_op, h) for h in HORIZONS},
         "gap": summary.gap_probability, "possible_day": summary.possible_gap_day,
         "shortfall_p50": summary.shortfall_p50, "likely_day": summary.likely_gap_day,
@@ -242,7 +269,9 @@ def eligible(ops_full: pd.DataFrame, cutoff: date, horizon: int = 30) -> bool:
 
 
 def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_paths: int = 300,
-                seed: int = 0, keep_paths_for: set[tuple[str, date]] | None = None) -> list[dict]:
+                seed: int = 0, keep_paths_for: set[tuple[str, date]] | None = None,
+                methods: tuple[tuple[str, str], ...] = ((STRUCTURAL, "m1"), (STRUCTURAL_M0, "m0"), (STRUCTURAL_M2, "m2")),
+                external: bool = True) -> list[dict]:
     """Бэктест одной компании по отсечкам: четыре подхода против операционного остатка. Без утечек:
     модели получают только операции ≤ отсечки, контекст (сезонность, индекс ЕНП) посчитан на данных ≤ отсечки."""
     from app.engine.categorize import categorize
@@ -263,7 +292,7 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
         context = contexts.get(cutoff)
         rng = np.random.default_rng([seed, cutoff.toordinal()])
         rows, revenue_pred = {}, {}
-        for name, method in ((STRUCTURAL, "m1"), (STRUCTURAL_M0, "m0"), (STRUCTURAL_M2, "m2")):
+        for name, method in methods:
             model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
                                 context=context, revenue_method=method)
             result = evaluate(model, n_paths, with_recommendations=False)
@@ -275,10 +304,12 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
         from app.engine.receivables import restore_open_documents
 
         documents = restore_open_documents(full, cutoff)
-        external = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
-                               context=context, invoices=documents)
-        rows[STRUCTURAL_EXT] = _approach_row(summarize(evaluate(external, n_paths, with_recommendations=False)
-                                                       .simulation.balance), truth)
+        ext_model = None
+        if external:
+            ext_model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
+                                    context=context, invoices=documents)
+            rows[STRUCTURAL_EXT] = _approach_row(summarize(evaluate(ext_model, n_paths, with_recommendations=False)
+                                                           .simulation.balance), truth)
         rows[NAIVE] = _approach_row(summarize(naive_paths(start, 30)), truth)
         rows[SEASONAL_NAIVE] = _approach_row(
             summarize(seasonal_naive_paths(prepared.ops, cutoff, start, 30, n_paths, rng)), truth)
@@ -288,7 +319,7 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
             "y": {h: bool((truth.b_op[:h] < 0).any()) for h in HORIZONS},
             "rows": rows, "level": structural.risk.level, "flows": flows, "revenue_pred": revenue_pred,
             "has_docs": any(i.direction == "in" for i in documents),
-            "flows_external": predicted_flows(external),
+            "flows_external": predicted_flows(ext_model) if ext_model is not None else None,
             "predicted_date": (structural.risk.possible_gap_date or structural.risk.likely_gap_date),
         }
         if keep_paths_for and (company, cutoff) in keep_paths_for:
