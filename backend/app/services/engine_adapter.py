@@ -29,6 +29,12 @@ class NoDataError(Exception):
     """У бизнеса ещё нет ни одной операции: нужно загрузить выписку."""
 
 
+def engine_id(tx_id: int) -> str:
+    """`operation_id` для движка. Движок сортирует операции дня по тексту id, поэтому id идёт с нулями слева:
+    порядок остаётся хронологическим, и прогноз не зависит от того, с какого номера БД начала нумерацию (пересев)."""
+    return f"{tx_id:012d}"
+
+
 def load_ops(db: Session, business: Business, up_to: date | None = None) -> pd.DataFrame:
     """Нормализованные операции бизнеса до даты `up_to` (по умолчанию — видимые, то есть ≤ `data_as_of`)."""
     limit = up_to if up_to is not None else business.data_as_of
@@ -42,7 +48,7 @@ def load_ops(db: Session, business: Business, up_to: date | None = None) -> pd.D
         raise NoDataError(business.id)
     raw = pd.DataFrame({
         "company_id": business.id,
-        "operation_id": [str(r.id) for r in rows],
+        "operation_id": [engine_id(r.id) for r in rows],
         "operation_date": [pd.Timestamp(r.date) for r in rows],
         "amount": [float(r.amount) for r in rows],
         "direction": [_DIRECTION[r.direction] for r in rows],
@@ -53,10 +59,11 @@ def load_ops(db: Session, business: Business, up_to: date | None = None) -> pd.D
     })
     ops = normalize(raw[RAW_COLUMNS])
     # Правка категории одной операции: у неё свой ключ `tx:<id>`, правило с этим ключом лежит в CounterpartyRule.
-    pinned = {key[len(TX_RULE_PREFIX):] for key in load_user_rules(db, business) if key.startswith(TX_RULE_PREFIX)}
+    pinned = {int(key[len(TX_RULE_PREFIX):]) for key in load_user_rules(db, business) if key.startswith(TX_RULE_PREFIX)}
     if pinned:
-        mask = ops["operation_id"].isin(pinned)
-        ops.loc[mask, "cp_key"] = TX_RULE_PREFIX + ops.loc[mask, "operation_id"]
+        ids = ops["operation_id"].astype(int)
+        mask = ids.isin(pinned)
+        ops.loc[mask, "cp_key"] = TX_RULE_PREFIX + ids[mask].astype(str)
     return ops
 
 

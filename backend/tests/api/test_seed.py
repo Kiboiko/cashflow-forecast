@@ -66,10 +66,16 @@ def test_reseed_is_clean_and_idempotent(seeded):
     db, service, _ = seeded
     persona = PERSONAS[0]
     before = db.scalar(select(func.count()).select_from(Transaction).where(Transaction.business_id == "C064"))
+    risk_before = service.result(db, db.get(Business, "C064"), 30)
     statement = to_csv_bytes(synthetic_statement(company="C064", seed=1, crunch=True))
     seed_business(db, service, persona, statement, AS_OF)
     after = db.scalar(select(func.count()).select_from(Transaction).where(Transaction.business_id == "C064"))
     assert after == before
+    # те же данные в БД с другой нумерацией строк дают тот же прогноз до копейки (демо не должно «плыть» после пересева)
+    risk_after = service.result(db, db.get(Business, "C064"), 30)
+    assert min(db.scalars(select(Transaction.id).where(Transaction.business_id == "C064"))) > before
+    assert risk_after.risk.gap_probability == risk_before.risk.gap_probability
+    assert list(risk_after.p50) == list(risk_before.p50) and list(risk_after.p10) == list(risk_before.p10)
     assert db.scalar(select(func.count()).select_from(ForecastSnapshot).where(ForecastSnapshot.business_id == "C064")) == 1
     assert db.scalar(select(func.count()).select_from(User).where(User.email == persona.email)) == 1
 

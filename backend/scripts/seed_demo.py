@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import os
 import sys
 import time
@@ -21,6 +22,7 @@ from app.config import get_settings
 from app.db.session import init_db, make_engine, make_session_factory
 from app.engine.categorize import categorize
 from app.engine.context import build_context
+from app.engine.enrich import enrich
 from app.engine.io import load_companies, load_operations
 from app.engine.normalize import normalize
 from app.logging_setup import setup_logging
@@ -56,15 +58,15 @@ def main() -> None:
 
         started = time.perf_counter()
         print("Читаю датасет и считаю контекст «со стороны» (отраслевая сезонность, ЕНП, задержки клиентов)…")
-        ops_all = categorize(normalize(load_operations(raw / "all_operations.csv")))
+        contexts = _build_contexts(raw, companies, args.as_of)
         reports = []
         for persona in PERSONAS:
             statement = raw / "statements" / f"{persona.company_id}.csv"
             if not statement.exists():
                 print(f"  {persona.company_id}: нет файла {statement.name} — пропускаю")
                 continue
-            context = build_context(ops_all, companies, persona.company_id, args.as_of)
-            report = seed_business(db, service, persona, statement.read_bytes(), args.as_of, companies, context)
+            report = seed_business(db, service, persona, statement.read_bytes(), args.as_of, companies,
+                                   contexts.get(persona.company_id))
             reports.append(report)
             print(f"  {persona.display_name:8} {persona.company_id}: {report.rows} операций, "
                   f"риск {report.risk_level} ({report.gap_probability:.0%}), предупреждений {report.alerts}")
@@ -73,11 +75,22 @@ def main() -> None:
         _print_accounts(reports)
 
 
+def _build_contexts(raw: Path, companies, as_of: date) -> dict:
+    """Контекст «со стороны» для каждой персоны. Операции всех компаний (222 тыс. строк) обрабатываются один раз и
+    освобождаются сразу после расчёта: в контейнере с 4 ГБ памяти держать несколько копий таблицы нельзя."""
+    ops = enrich(categorize(normalize(load_operations(raw / "all_operations.csv"))))   # ENGINE_API §3: после categorize и enrich
+    present = set(ops["company_id"].unique())
+    contexts = {p.company_id: build_context(ops, companies, p.company_id, as_of) for p in PERSONAS if p.company_id in present}
+    del ops
+    gc.collect()
+    return contexts
+
+
 def _ask_api_to_warm_up() -> None:
     """Работающий API живёт в другом процессе и про новые данные не знает: просим его прогреть кэш (не обязательно)."""
     url = os.environ.get("API_URL", "http://localhost:8000") + "/api/v1/demo/warm-up"
     try:
-        urllib.request.urlopen(urllib.request.Request(url, method="POST"), timeout=3)  # noqa: S310 — свой адрес
+        urllib.request.urlopen(urllib.request.Request(url, method="POST"), timeout=3)   # адрес — свой API
         print("API прогревает прогнозы демо-бизнесов в фоне.")
     except OSError:
         print("API сейчас недоступен — первый вход будет чуть медленнее (холодный старт).")
