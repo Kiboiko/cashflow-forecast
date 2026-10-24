@@ -269,3 +269,102 @@ class Alert(Schema):
     body: str
     created_at: DateTime
     acknowledged_at: DateTime | None = None
+
+
+# =====================================================================================================
+# Ниже — модели сервиса (человек B): вход, пользователь, бизнес, настройки, операции. Движок их не использует.
+# =====================================================================================================
+
+# ---------- вход и пользователь ----------
+class LoginRequest(Schema):
+    email: str
+    password: str
+
+
+class DemoLoginRequest(Schema):
+    email: str
+
+
+class UserOut(Schema):
+    id: int
+    email: str
+    display_name: str
+    telegram_connected: bool = False
+
+
+class TokenResponse(Schema):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    user: UserOut
+
+
+class BusinessBrief(Schema):
+    id: str
+    name: str
+    legal_form: str | None = None
+    industry: str | None = None
+    data_as_of: Date | None = None
+
+
+class MeResponse(Schema):
+    user: UserOut
+    businesses: list[BusinessBrief]
+
+
+class DemoPersona(Schema):
+    """Карточка на экране «Демо-персоны»: вход одним нажатием."""
+    email: str
+    display_name: str
+    title: str                                      # «детский центр (ИП)»
+    note: str | None = None
+    business_id: str
+
+
+# ---------- бизнес и настройки ----------
+class OtherAccount(Schema):
+    bank: str = Field(max_length=120)
+    balance: float
+
+
+class BusinessSettings(Schema):
+    """Настройки бизнеса (`Business.settings`): поля совпадают с `engine.types.Settings`."""
+    horizon_days: Literal[30, 60, 90] = 30
+    threshold: float = Field(default=0.0, ge=0)                 # неснижаемый остаток
+    overdraft_limit: float = Field(default=0.0, ge=0)
+    risk_yellow: float = Field(default=0.10, gt=0, lt=1)
+    risk_red: float = Field(default=0.40, gt=0, lt=1)
+    other_accounts: list[OtherAccount] = []
+    include_other_accounts: bool = False
+    include_owner_withdrawals: bool = True
+
+
+class SettingsPatch(Schema):
+    """Частичное обновление настроек. `telegram_chat_id` хранится у пользователя, а не в настройках бизнеса."""
+    horizon_days: Literal[30, 60, 90] | None = None
+    threshold: float | None = Field(default=None, ge=0)
+    overdraft_limit: float | None = Field(default=None, ge=0)
+    other_accounts: list[OtherAccount] | None = None
+    include_other_accounts: bool | None = None
+    include_owner_withdrawals: bool | None = None
+    telegram_chat_id: str | None = Field(default=None, max_length=64)
+
+
+class ReplayInfo(Schema):
+    """Машина времени (демо): данные после `data_as_of` уже загружены, но скрыты и «подгружаются» шагами."""
+    enabled: bool
+    data_until: Date | None = None                  # последняя дата в выписке; после неё шагать некуда
+    can_advance: bool = False
+
+
+class BusinessOut(Schema):
+    id: str
+    name: str
+    inn: str | None = None
+    legal_form: str | None = None
+    industry: str | None = None
+    settings: BusinessSettings
+    telegram_chat_id: str | None = None
+    data_as_of: Date | None = None
+    accounting_source: str | None = None            # откуда счета: demo_accounting | csv | 1c | None
+    data_quality: DataQuality | None = None
+    replay: ReplayInfo
