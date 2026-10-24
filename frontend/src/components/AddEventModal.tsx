@@ -127,7 +127,8 @@ export function AddEventModal({
             {apiError}
           </p>
         )}
-        <button type="submit" className="sr-only">
+        {/* Невидимая кнопка нужна только для отправки по Enter; настоящая «Сохранить» — в подвале окна */}
+        <button type="submit" className="sr-only" aria-hidden="true" tabIndex={-1}>
           {copy.common.save}
         </button>
       </form>

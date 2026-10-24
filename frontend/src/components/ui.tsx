@@ -21,14 +21,17 @@ export function Card({
   children,
   className,
   as: Tag = 'section',
+  padded = true,
   ...rest
 }: {
   children: ReactNode
   className?: string
   as?: 'section' | 'div' | 'article' | 'li'
+  /** false — без внутренних отступов (списки, где отступы у строк): в Tailwind `p-0` не перебивает `p-4`, поэтому флаг. */
+  padded?: boolean
 } & HTMLAttributes<HTMLElement>) {
   return (
-    <Tag className={cx('rounded-2xl border border-line bg-surface p-4 sm:p-5', className)} {...rest}>
+    <Tag className={cx('rounded-2xl border border-line bg-surface', padded && 'p-4 sm:p-5', className)} {...rest}>
       {children}
     </Tag>
   )

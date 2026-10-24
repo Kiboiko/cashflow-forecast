@@ -568,3 +568,14 @@ class BacktestReport(Schema):
     """Отчёт A (`reports/backtest_<дата>.json`) как есть: структуру разбирает страница «Как мы считаем»."""
     file: str
     report: dict
+
+
+# ---------- план-факт: расширение контракта (поля сверх §8, клиенты старого формата их просто не читают) ----------
+class PlanFactEventOut(PlanFactEvent):
+    direction: Direction | None = None              # приход или платёж: от этого зависят слова «пришло / заплатили»
+    source: str | None = None
+    mandatory: bool = False
+
+
+class PlanFactOut(PlanFactResponse):
+    events: list[PlanFactEventOut]                  # type: ignore[assignment]

@@ -32,6 +32,16 @@ function row(keyEl: HTMLElement, value: string, label: string): HTMLElement {
   return line
 }
 
+/** Подсказка с несколькими строками текста (диаграмма надёжности): первая — заголовок. */
+export function textTooltip(title: string, lines: string[]): HTMLElement {
+  const root = node('div', {
+    padding: '10px 12px', maxWidth: '260px', font: '13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif', color: 'var(--ink)',
+  })
+  root.append(node('div', { fontWeight: '600', marginBottom: '2px' }, title))
+  for (const line of lines) root.append(node('div', { color: 'var(--ink-2)' }, line))
+  return root
+}
+
 /** Подсказка графика: значения крупнее подписей, ключи-линии вместо квадратов. */
 export function tooltipElement(content: TooltipContent): HTMLElement {
   const root = node('div', {

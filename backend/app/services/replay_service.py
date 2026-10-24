@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Alert, Business, ForecastSnapshot, Transaction
 from app.engine.alerts import build_alerts
 from app.engine.planfact import plan_fact
-from app.schemas import PlanFactResponse, ReplayResult, SnapshotBrief
+from app.schemas import PlanFactOut, ReplayResult, SnapshotBrief
 from app.services import alert_service
 from app.services.business_service import business_settings, last_operation_date
 from app.services.engine_adapter import load_ops, persist_derived
@@ -64,7 +64,7 @@ def default_snapshot(db: Session, business: Business) -> ForecastSnapshot | None
     return list(by_date.values())[-1]
 
 
-def plan_fact_for(db: Session, business: Business, service: ForecastService, snapshot_id: int | None) -> PlanFactResponse:
+def plan_fact_for(db: Session, business: Business, service: ForecastService, snapshot_id: int | None) -> PlanFactOut:
     if snapshot_id is not None:
         snapshot = db.get(ForecastSnapshot, snapshot_id)
         if snapshot is None or snapshot.business_id != business.id:
@@ -75,7 +75,13 @@ def plan_fact_for(db: Session, business: Business, service: ForecastService, sna
     state = service.state(db, business)
     fact_until = max(state.as_of, snapshot.as_of)
     response, _ = plan_fact(snapshot.payload, state.ops, fact_until, snapshot_id=snapshot.id)
-    return response
+    meta = {e["id"]: e for e in snapshot.payload.get("events", [])}      # направление и источник — из снимка
+    events = []
+    for event in response.events:
+        known = meta.get(event.event_id, {})
+        events.append({**event.model_dump(), "source": known.get("source"), "mandatory": bool(known.get("mandatory", False)),
+                       "direction": None if "direction" not in known else ("in" if known["direction"] > 0 else "out")})
+    return PlanFactOut.model_validate({**response.model_dump(), "events": events})
 
 
 # ---------- машина времени ----------

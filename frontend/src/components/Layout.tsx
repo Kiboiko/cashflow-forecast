@@ -1,9 +1,23 @@
 import { useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
+import { useAlerts } from '../api/hooks'
 import { useAuth, useCurrentBusiness } from '../auth'
 import { copy } from '../lib/copy'
-import { IconBook, IconClock, IconCompare, IconHome, IconList, IconLogout, IconRadar, IconSettings, IconSliders, IconTable, IconX } from './icons'
+import {
+  IconBell,
+  IconBook,
+  IconClock,
+  IconCompare,
+  IconHome,
+  IconList,
+  IconLogout,
+  IconRadar,
+  IconSettings,
+  IconSliders,
+  IconTable,
+  IconX,
+} from './icons'
 import { cx } from './ui'
 
 interface NavItem {
@@ -24,6 +38,27 @@ const MORE_NAV: NavItem[] = [
   { to: '/how-it-works', label: copy.nav.how, Icon: IconBook },
   { to: '/settings', label: copy.nav.settings, Icon: IconSettings },
 ]
+
+/** Колокольчик: число новых предупреждений, ведёт в центр предупреждений. */
+function AlertsBell({ bid }: { bid: string | undefined }) {
+  const alerts = useAlerts(bid)
+  const count = alerts.data?.length ?? 0
+  return (
+    <Link
+      to="/plan-fact#alerts"
+      className="relative rounded-lg p-2 text-ink-2 hover:bg-surface-2 hover:text-ink"
+      aria-label={count ? `Предупреждения: ${count} новых` : 'Предупреждений нет'}
+      title="Предупреждения"
+    >
+      <IconBell size={20} />
+      {count > 0 && (
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-crit px-1 text-[10px] font-semibold leading-none text-white">
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </Link>
+  )
+}
 
 function Logo() {
   return (
@@ -141,6 +176,7 @@ export function Layout(): ReactNode {
                 {business?.name}
               </span>
             )}
+            <AlertsBell bid={business?.id} />
             <button
               type="button"
               onClick={signOut}

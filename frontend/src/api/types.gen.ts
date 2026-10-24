@@ -1147,8 +1147,8 @@ export interface components {
             /** Fact Balance */
             fact_balance?: number | null;
         };
-        /** PlanFactEvent */
-        PlanFactEvent: {
+        /** PlanFactEventOut */
+        PlanFactEventOut: {
             /** Event Id */
             event_id: string;
             /** Title */
@@ -1169,9 +1169,18 @@ export interface components {
             matched_transaction_id?: string | null;
             /** Days Late */
             days_late?: number | null;
+            /** Direction */
+            direction?: ("in" | "out") | null;
+            /** Source */
+            source?: string | null;
+            /**
+             * Mandatory
+             * @default false
+             */
+            mandatory: boolean;
         };
-        /** PlanFactResponse */
-        PlanFactResponse: {
+        /** PlanFactOut */
+        PlanFactOut: {
             /** Snapshot Id */
             snapshot_id: number;
             /**
@@ -1187,7 +1196,7 @@ export interface components {
             /** Daily */
             daily: components["schemas"]["PlanFactDay"][];
             /** Events */
-            events: components["schemas"]["PlanFactEvent"][];
+            events: components["schemas"]["PlanFactEventOut"][];
             summary: components["schemas"]["PlanFactSummary"];
         };
         /** PlanFactSummary */
@@ -2367,7 +2376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlanFactResponse"];
+                    "application/json": components["schemas"]["PlanFactOut"];
                 };
             };
             /** @description Validation Error */

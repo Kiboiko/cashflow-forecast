@@ -76,7 +76,7 @@ function Upcoming({ bid, asOf, horizon }: { bid: string; asOf: string; horizon: 
         groups.map(([date, items]) => (
           <section key={date} aria-label={wdm(date)}>
             <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-2">{wdm(date)}</h3>
-            <Card className="divide-y divide-line p-0 sm:p-0">
+            <Card padded={false} className="divide-y divide-line">
               {items.map((event) => {
                 const id = dbId(event)
                 const own = id !== null ? byId.get(id) : undefined

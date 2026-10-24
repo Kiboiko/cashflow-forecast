@@ -60,9 +60,6 @@ def synthetic_statement(company: str = "T001", start: date = date(2025, 1, 1), e
         add(shift(nominal_date(year, month, 12), "next"), -1, 18_000 * float(rng.normal(1, 0.03)),
             "Оплата услуг связи и интернет", ("0050000001", "ПАО «Связь»"))
 
-    if crunch:
-        add(date(2026, 7, 24), -1, 1_150_000, "Оплата оборудования по договору купли-продажи", SUPPLIERS[0])
-
     n = 0
     d = start
     while d <= end:                                                       # поставщики: вторник и пятница, документ за 9 дней
@@ -80,6 +77,11 @@ def synthetic_statement(company: str = "T001", start: date = date(2025, 1, 1), e
             doc = nominal_date(period.year, period.month, int(rng.integers(2, 25)))
             pay = shift(doc + timedelta(days=int(np.clip(rng.normal(21, 5), 7, 45))), "next")
             add(pay, 1, 125_000 * float(rng.lognormal(0, 0.15)), f"Оплата по счету № {number} от {_dmy(doc)} за услуги", client)
+
+    if crunch:                                                            # покупка оборудования «съедает» почти весь остаток
+        crunch_day = date(2026, 7, 24)
+        before = opening + sum(s * a for day, items in days.items() if day < crunch_day for s, a, *_ in items)
+        add(crunch_day, -1, max(before - 300_000, 100_000), "Оплата оборудования по договору купли-продажи", SUPPLIERS[0])
 
     rows, balance, op_n = [], opening, 0
     for day in sorted(days):

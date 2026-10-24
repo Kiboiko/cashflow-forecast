@@ -36,6 +36,8 @@ export interface BalanceChartModel {
   threshold: number | null
   events: ChartEvent[]
   extras?: TooltipExtra[]
+  /** Вертикальная линия с подписью — например, «Данные по 7 авг» на графике план-факта. */
+  marker?: { date: string; label: string }
 }
 
 export interface AxisScale {

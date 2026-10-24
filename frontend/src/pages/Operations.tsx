@@ -324,7 +324,7 @@ export default function OperationsPage() {
             </div>
           )}
 
-          <Card className="p-0 sm:p-0">
+          <Card padded={false}>
             {list.isPending ? (
               <Spinner />
             ) : list.isError ? (

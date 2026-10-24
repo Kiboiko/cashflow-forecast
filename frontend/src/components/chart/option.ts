@@ -62,6 +62,26 @@ export function buildOption(model: BalanceChartModel, t: ChartTokens, flags: Opt
   const showMin =
     flags.minMarker && lowestIndex > 0 && lowestIndex < firstValues.length - 1 && !(lastValue != null && Math.abs(lowest - lastValue) < 1)
 
+  // Горизонтальная линия порога и (необязательно) вертикальная отметка «данные по…»
+  const lineMarks: object[] = []
+  if (model.threshold != null) {
+    lineMarks.push({
+      yAxis: model.threshold,
+      lineStyle: { color: t.crit, width: 1, type: 'solid' },
+      label: {
+        show: true, position: 'insideStartTop', color: t.ink2, fontSize: 11,
+        formatter: () => `${copy.chart.threshold}: ${rubAxis(model.threshold!)}`,
+      },
+    })
+  }
+  if (model.marker) {
+    lineMarks.push({
+      xAxis: model.marker.date,
+      lineStyle: { color: t.ink3, width: 1, type: 'solid' },
+      label: { show: true, position: 'insideEndTop', color: t.ink2, fontSize: 11, formatter: () => model.marker!.label },
+    })
+  }
+
   const lines = model.series.map((s, k) => ({
     type: 'line',
     id: s.id,
@@ -80,20 +100,7 @@ export function buildOption(model: BalanceChartModel, t: ChartTokens, flags: Opt
         ? { show: true, distance: 6, fontSize: 12, color: t.ink2, formatter: (p: { value: number }) => rubAxis(p.value) }
         : undefined,
     markArea: k === 0 ? { silent: true, data: [...weekendAreas, ...zoneArea], z: 0 } : undefined,
-    markLine:
-      k === 0 && model.threshold != null
-        ? {
-            silent: true,
-            symbol: 'none',
-            animation: false,
-            lineStyle: { color: t.crit, width: 1, type: 'solid' },
-            label: {
-              show: true, position: 'insideStartTop', color: t.ink2, fontSize: 11,
-              formatter: () => `${copy.chart.threshold}: ${rubAxis(model.threshold!)}`,
-            },
-            data: [{ yAxis: model.threshold }],
-          }
-        : undefined,
+    markLine: k === 0 && lineMarks.length ? { silent: true, symbol: 'none', animation: false, data: lineMarks } : undefined,
     markPoint:
       k === 0 && showMin
         ? {

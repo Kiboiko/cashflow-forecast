@@ -15,7 +15,7 @@ from app.schemas import (
 )
 from app.schemas import (
     BacktestReport,
-    PlanFactResponse,
+    PlanFactOut,
     ReplayAdvanceRequest,
     ReplayResetRequest,
     ReplayResult,
@@ -32,9 +32,9 @@ def _demo_only(request: Request) -> None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Не найдено")
 
 
-@router.get("/businesses/{bid}/plan-fact", response_model=PlanFactResponse)
+@router.get("/businesses/{bid}/plan-fact", response_model=PlanFactOut)
 def plan_fact(request: Request, business: OwnedBusiness, db: DbSession,
-              snapshot_id: Annotated[int | None, Query()] = None) -> PlanFactResponse:
+              snapshot_id: Annotated[int | None, Query()] = None) -> PlanFactOut:
     try:
         return replay_service.plan_fact_for(db, business, request.app.state.forecast_service, snapshot_id)
     except replay_service.ReplayError as exc:

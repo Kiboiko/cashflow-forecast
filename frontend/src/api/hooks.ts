@@ -252,9 +252,14 @@ export function useScenarioPresets(bid: string | undefined) {
   })
 }
 
-export function useRunScenario(bid: string) {
-  return useMutation({
-    mutationFn: (request: ScenarioRequest) => api.post<ScenarioResponse>(`/businesses/${bid}/scenarios/run`, request),
+/** Расчёт сценария. Это POST, но он ничего не меняет, поэтому живёт как запрос: одинаковые настройки — из кэша. */
+export function useScenario(bid: string | undefined, request: ScenarioRequest | null) {
+  return useQuery({
+    queryKey: ['b', bid ?? '', 'scenario', JSON.stringify(request)] as const,
+    queryFn: () => api.post<ScenarioResponse>(`/businesses/${bid}/scenarios/run`, request),
+    enabled: !!bid && request !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
   })
 }
 

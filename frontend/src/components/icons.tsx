@@ -94,4 +94,5 @@ export const IconRadar = make(
     <path d="M4.5 20h15" />
   </>,
 )
-export const IconSparkle = make(<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M17 7l-2 2M9 15l-2 2" />)
+export const IconBell = make(<path d="M6 9.5a6 6 0 1 1 12 0c0 4.2 1.5 5.5 2 6.5H4c.5-1 2-2.3 2-6.5ZM10 19a2 2 0 0 0 4 0" />)
+export const IconSparkle =make(<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M17 7l-2 2M9 15l-2 2" />)
