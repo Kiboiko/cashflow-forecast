@@ -1,0 +1,13 @@
+.git
+.env
+.venv
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+frontend/dist
+data
+*.zip
+*.pdf
+backend/kassa.db
