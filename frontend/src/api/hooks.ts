@@ -17,6 +17,7 @@ import type {
   EventPatch,
   EventsImportResult,
   ForecastResponse,
+  ForecastTrace,
   ImportResult,
   JuryCompany,
   KeyRate,
@@ -126,6 +127,16 @@ export function useForecast(bid: string | undefined, horizon: number) {
     placeholderData: keepPreviousData,
     staleTime: 30_000,
     retry: (count, error) => !(error instanceof Error && 'status' in error && (error as { status: number }).status === 409) && count < 1,
+  })
+}
+
+/** Пошаговый журнал расчёта прогноза — грузим, только когда пользователь раскрыл блок. */
+export function useForecastTrace(bid: string | undefined, horizon: number, enabled: boolean) {
+  return useQuery({
+    queryKey: [...qk.forecast(bid ?? '', horizon), 'trace'],
+    queryFn: () => api.get<ForecastTrace>(`/businesses/${bid}/forecast/trace?horizon=${horizon}`),
+    enabled: !!bid && enabled,
+    staleTime: 30_000,
   })
 }
 

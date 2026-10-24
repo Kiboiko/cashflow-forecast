@@ -223,6 +223,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/businesses/{bid}/forecast/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Forecast Trace
+         * @description Пошаговый журнал расчёта: данные → качество → категории → потоки → сценарии → риск → советы.
+         */
+        get: operations["get_forecast_trace_api_v1_businesses__bid__forecast_trace_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/categories": {
         parameters: {
             query?: never;
@@ -723,7 +743,7 @@ export interface components {
             risk_yellow: number;
             /**
              * Risk Red
-             * @default 0.4
+             * @default 0.35
              */
             risk_red: number;
             /**
@@ -1145,6 +1165,14 @@ export interface components {
             insights: components["schemas"]["Insight"][];
             data_quality: components["schemas"]["DataQuality"];
             model: components["schemas"]["ModelInfo"];
+        };
+        /**
+         * ForecastTrace
+         * @description Пошаговый журнал расчёта прогноза (engine/trace.py): что модель увидела в данных и как получила ответ.
+         */
+        ForecastTrace: {
+            /** Steps */
+            steps: string[];
         };
         /** GapOut */
         GapOut: {
@@ -2145,6 +2173,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForecastResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_forecast_trace_api_v1_businesses__bid__forecast_trace_get: {
+        parameters: {
+            query?: {
+                horizon?: number;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastTrace"];
                 };
             };
             /** @description Validation Error */

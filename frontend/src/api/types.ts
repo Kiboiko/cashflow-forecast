@@ -12,6 +12,7 @@ export type MandatoryCoverage = S['MandatoryCoverage']
 export type Recommendation = S['Recommendation']
 export type Insight = S['Insight']
 export type DataQuality = S['DataQuality']
+export type ForecastTrace = S['ForecastTrace']
 
 export type TokenResponse = S['TokenResponse']
 export type UserOut = S['UserOut']

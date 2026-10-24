@@ -7,6 +7,7 @@ import { useCurrentBusiness } from '../auth'
 import { AlertsCard } from '../components/AlertsCard'
 import { ForecastChartCard, type Horizon } from '../components/ForecastChartCard'
 import { DriversList, Insights, ObligationsList, QualityNotice, Recommendations, RiskCard, SummaryStats } from '../components/HomeParts'
+import { TraceCard } from '../components/TraceCard'
 import { EmptyState, ErrorBlock, Spinner } from '../components/ui'
 import { copy } from '../lib/copy'
 
@@ -59,6 +60,7 @@ export default function HomePage() {
       </div>
       <Recommendations items={data.recommendations} risk={data.risk} />
       <Insights items={data.insights} />
+      <TraceCard bid={business.id} horizon={horizon} />
     </div>
   )
 }

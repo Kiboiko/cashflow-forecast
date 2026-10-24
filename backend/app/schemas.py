@@ -565,6 +565,11 @@ class ReplayResult(Schema):
 
 
 # ---------- отчёт бэктеста ----------
+class ForecastTrace(Schema):
+    """Пошаговый журнал расчёта прогноза (engine/trace.py): что модель увидела в данных и как получила ответ."""
+    steps: list[str]
+
+
 class BacktestReport(Schema):
     """Отчёт A (`reports/backtest_<дата>.json`) как есть: структуру разбирает страница «Как мы считаем»."""
     file: str

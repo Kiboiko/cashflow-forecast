@@ -33,7 +33,7 @@ from app.engine.categorize import categorize
 from app.engine.categorize.taxonomy import TAXONOMY
 from app.engine.enrich import enrich
 from app.engine.normalize import norm_text
-from app.engine.pipeline import run_scenario
+from app.engine.pipeline import evaluate, run_scenario
 from app.engine.plan import manual_event
 from app.engine.planfact import make_snapshot
 from app.engine.receivables import Invoice, restore_open_documents
@@ -41,6 +41,7 @@ from app.engine.recurring import SALARY_TITLE, detect_streams
 from app.engine.response import to_response, to_scenario_response
 from app.engine.scenarios import largest_client
 from app.engine.state import EngineState
+from app.engine.trace import trace_forecast
 from app.engine.types import ForecastResult, PlannedEvent
 from app.integrations.telegram import TelegramClient
 from app.schemas import (
@@ -65,6 +66,7 @@ _WEEKDAYS_DAT = ["понедельникам", "вторникам", "среда
 _MAX_DATE = date(9999, 12, 31)
 SOURCE_LABELS = {"demo_accounting": "Демо-данные учётной системы (восстановлены из выписки)", "csv": "Файл со счетами",
                  "1c": "1С"}
+TRACE_PATHS = 1000                    # как в прогнозе на «Главной»: те же сценарии, те же числа
 BANK_HORIZON_DAYS = 90                # ответ банка берём на самый длинный горизонт, движок обрежет
 PAID_SHARE = 0.95                    # счёт, оплаченный на 95% и больше, открытым не считаем
 
@@ -266,6 +268,17 @@ class ForecastService:
             return ForecastResponse.model_validate(data)
         horizon = horizon or business_settings(business).horizon_days
         return to_response(self.result(db, business, horizon), business.id)
+
+    def trace(self, db: Session, business: Business, horizon: int | None = None) -> list[str]:
+        """Пошаговый журнал расчёта того же прогноза, что на «Главной»: та же модель, тот же seed — те же числа."""
+        if self.fixture_mode:
+            return ["Прогноз показан из готового примера (FORECAST_MODE=fixture): журнал расчёта есть в режиме engine."]
+        horizon = horizon or business_settings(business).horizon_days
+        with self._lock(business.id):
+            state = self.state(db, business)
+            model = state.model(self.planned(db, business, state.as_of), horizon=horizon,
+                                invoices=self.invoices(db, business, state.as_of), bank=self.bank(db, business, state.as_of))
+            return trace_forecast(model, evaluate(model, TRACE_PATHS))
 
     def data_quality(self, db: Session, business: Business) -> DataQuality | None:
         if self.fixture_mode:

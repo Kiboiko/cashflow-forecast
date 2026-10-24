@@ -261,3 +261,14 @@ def test_synthetic_csv_roundtrip():
     frame = synthetic_statement(end=date(2025, 3, 31))
     assert to_csv_bytes(frame).startswith(b"\xef\xbb\xbf")
     assert frame["operation_id"].is_unique
+
+
+def test_forecast_trace_explains_the_same_forecast_step_by_step(env):
+    response = env.client.get(env.url("/forecast/trace"), headers=env.headers)
+    assert response.status_code == 200
+    steps = response.json()["steps"]
+    assert steps[0].startswith("Шаг 1. Данные") and any(s.startswith("Шаг 10. Риск") for s in steps)
+    forecast = ForecastResponse.model_validate(env.client.get(env.url("/forecast"), headers=env.headers).json())
+    assert f"уровень «{forecast.risk.level}»" in next(s for s in steps if s.startswith("Шаг 10."))
+    other = env.client.get("/api/v1/businesses/NOPE/forecast/trace", headers=env.headers)
+    assert other.status_code == 404
