@@ -163,10 +163,386 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Categories */
+        get: operations["list_categories_api_v1_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transactions */
+        get: operations["list_transactions_api_v1_businesses__bid__transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/transactions/{tid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Transaction */
+        patch: operations["patch_transaction_api_v1_businesses__bid__transactions__tid__patch"];
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/categories/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Categories Summary */
+        get: operations["categories_summary_api_v1_businesses__bid__categories_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Statement */
+        post: operations["upload_statement_api_v1_businesses__bid__imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_v1_businesses__bid__events_get"];
+        put?: never;
+        /** Create Event */
+        post: operations["create_event_api_v1_businesses__bid__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/events/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Events */
+        post: operations["import_events_api_v1_businesses__bid__events_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/events/{eid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel Event */
+        delete: operations["cancel_event_api_v1_businesses__bid__events__eid__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Event */
+        patch: operations["patch_event_api_v1_businesses__bid__events__eid__patch"];
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/receivables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receivables */
+        get: operations["receivables_api_v1_businesses__bid__receivables_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/recurring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recurring */
+        get: operations["recurring_api_v1_businesses__bid__recurring_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/scenarios/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scenario Presets */
+        get: operations["scenario_presets_api_v1_businesses__bid__scenarios_presets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/scenarios/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Scenario */
+        post: operations["run_scenario_api_v1_businesses__bid__scenarios_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/plan-fact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plan Fact */
+        get: operations["plan_fact_api_v1_businesses__bid__plan_fact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Snapshots */
+        get: operations["snapshots_api_v1_businesses__bid__snapshots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alerts */
+        get: operations["alerts_api_v1_businesses__bid__alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/alerts/{aid}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Alert */
+        post: operations["acknowledge_alert_api_v1_businesses__bid__alerts__aid__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/demo/businesses/{bid}/replay/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replay Advance */
+        post: operations["replay_advance_api_v1_demo_businesses__bid__replay_advance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/demo/businesses/{bid}/replay/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replay Reset */
+        post: operations["replay_reset_api_v1_demo_businesses__bid__replay_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quality/backtest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Backtest
+         * @description Свежий отчёт бэктеста человека A (`reports/backtest_<дата>.json`) для страницы «Как мы считаем».
+         */
+        get: operations["backtest_api_v1_quality_backtest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Alert */
+        Alert: {
+            /** Id */
+            id: number;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "gap_risk" | "mandatory_at_risk" | "missed_inflow" | "overdue_invoice" | "data_gap" | "needs_review";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "critical";
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Acknowledged At */
+            acknowledged_at?: string | null;
+        };
+        /**
+         * BacktestReport
+         * @description Отчёт A (`reports/backtest_<дата>.json`) как есть: структуру разбирает страница «Как мы считаем».
+         */
+        BacktestReport: {
+            /** File */
+            file: string;
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            };
+        };
+        /** Body_import_events_api_v1_businesses__bid__events_import_post */
+        Body_import_events_api_v1_businesses__bid__events_import_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_upload_statement_api_v1_businesses__bid__imports_post */
+        Body_upload_statement_api_v1_businesses__bid__imports_post: {
+            /** File */
+            file: string;
+        };
         /** BusinessBrief */
         BusinessBrief: {
             /** Id */
@@ -248,6 +624,82 @@ export interface components {
              * @default true
              */
             include_owner_withdrawals: boolean;
+        };
+        /** CategoryInfo */
+        CategoryInfo: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Group */
+            group: string;
+            /** Mandatory */
+            mandatory: boolean;
+        };
+        /**
+         * CategoryPatch
+         * @description Исправление категории. `apply_to_counterparty` — запомнить правило для контрагента и пересобрать все его операции.
+         */
+        CategoryPatch: {
+            /** Category */
+            category: string;
+            /**
+             * Apply To Counterparty
+             * @default false
+             */
+            apply_to_counterparty: boolean;
+        };
+        /** CategoryPatchResult */
+        CategoryPatchResult: {
+            transaction: components["schemas"]["TransactionOut"];
+            /** Updated */
+            updated: number;
+            /** Rule Saved */
+            rule_saved: boolean;
+        };
+        /**
+         * CategorySummary
+         * @description «Куда уходят деньги»: суммы по категориям и месяцам.
+         */
+        CategorySummary: {
+            /** Months */
+            months: string[];
+            /** Rows */
+            rows: components["schemas"]["CategorySummaryRow"][];
+            /** Inflow Total */
+            inflow_total: number;
+            /** Outflow Total */
+            outflow_total: number;
+        };
+        /** CategorySummaryRow */
+        CategorySummaryRow: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Group */
+            group: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            /** Total */
+            total: number;
+            /** By Month */
+            by_month: number[];
+        };
+        /** ClientDelayShock */
+        ClientDelayShock: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "client_delay";
+            /** Counterparty Inn */
+            counterparty_inn?: string | null;
+            /** Delay Days */
+            delay_days: number;
         };
         /** DailyPoint */
         DailyPoint: {
@@ -341,6 +793,131 @@ export interface components {
             category?: string | null;
             /** Text */
             text?: string | null;
+        };
+        /**
+         * EventCreate
+         * @description Ручное событие: «клиент обещал оплатить 300 000 ₽ 20-го».
+         */
+        EventCreate: {
+            /** Title */
+            title: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            /** Amount */
+            amount: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Counterparty Name */
+            counterparty_name?: string | null;
+            /**
+             * Probability
+             * @default 1
+             */
+            probability: number;
+            /**
+             * Mandatory
+             * @default false
+             */
+            mandatory: boolean;
+        };
+        /** EventOut */
+        EventOut: {
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "invoice_out" | "bill_in" | "contract" | "manual" | "tax" | "bank_internal";
+            /** Source */
+            source: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            /** Amount */
+            amount: number;
+            /** Expected Date */
+            expected_date?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Doc Type */
+            doc_type?: string | null;
+            /** Doc No */
+            doc_no?: string | null;
+            /** Doc Date */
+            doc_date?: string | null;
+            /** Counterparty Inn */
+            counterparty_inn?: string | null;
+            /** Counterparty Name */
+            counterparty_name?: string | null;
+            /** Title */
+            title: string;
+            /** Probability */
+            probability: number;
+            /** Mandatory */
+            mandatory: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "planned" | "fulfilled" | "partially" | "overdue" | "cancelled";
+        };
+        /**
+         * EventPatch
+         * @description Правка события плана: меняем только то, что передано.
+         */
+        EventPatch: {
+            /** Title */
+            title?: string | null;
+            /** Amount */
+            amount?: number | null;
+            /** Date */
+            date?: string | null;
+            /** Probability */
+            probability?: number | null;
+            /** Mandatory */
+            mandatory?: boolean | null;
+            /** Counterparty Name */
+            counterparty_name?: string | null;
+        };
+        /** EventsImportResult */
+        EventsImportResult: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "invoices" | "contracts";
+            /** Added */
+            added: number;
+            /** Skipped */
+            skipped: number;
+            /**
+             * Errors
+             * @default []
+             */
+            errors: string[];
+            /** Accounting Source */
+            accounting_source?: string | null;
+        };
+        /** FixedCostIncreaseShock */
+        FixedCostIncreaseShock: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "fixed_cost_increase";
+            /** Pct */
+            pct: number;
+            /** Categories */
+            categories: string[];
         };
         /**
          * ForecastEvent
@@ -443,6 +1020,34 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** ImportResult */
+        ImportResult: {
+            /** Batch Id */
+            batch_id: number;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "dataset_csv" | "1c" | "replay" | "seed";
+            /** Period */
+            period: [
+                string,
+                string
+            ];
+            /** Added */
+            added: number;
+            /** Duplicates Removed */
+            duplicates_removed: number;
+            /**
+             * Data Gaps
+             * @default []
+             */
+            data_gaps: components["schemas"]["GapOut"][];
+            /** Categorized Share */
+            categorized_share: number;
+            /** Needs Review */
+            needs_review: number;
+        };
         /** Insight */
         Insight: {
             /** Kind */
@@ -490,12 +1095,182 @@ export interface components {
             /** Components */
             components: string[];
         };
+        /** OneOffExpenseShock */
+        OneOffExpenseShock: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "one_off_expense";
+            /** Amount */
+            amount: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Title
+             * @default Внеплановый расход
+             */
+            title: string;
+            /**
+             * Mandatory
+             * @default false
+             */
+            mandatory: boolean;
+        };
         /** OtherAccount */
         OtherAccount: {
             /** Bank */
             bank: string;
             /** Balance */
             balance: number;
+        };
+        /** PlanFactDay */
+        PlanFactDay: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Plan In */
+            plan_in: number;
+            /** Fact In */
+            fact_in?: number | null;
+            /** Plan Out */
+            plan_out: number;
+            /** Fact Out */
+            fact_out?: number | null;
+            /** Plan Balance P50 */
+            plan_balance_p50: number;
+            /** Fact Balance */
+            fact_balance?: number | null;
+        };
+        /** PlanFactEvent */
+        PlanFactEvent: {
+            /** Event Id */
+            event_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Expected Date
+             * Format: date
+             */
+            expected_date: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "planned" | "fulfilled" | "partially" | "overdue" | "cancelled";
+            /** Matched Transaction Id */
+            matched_transaction_id?: string | null;
+            /** Days Late */
+            days_late?: number | null;
+        };
+        /** PlanFactResponse */
+        PlanFactResponse: {
+            /** Snapshot Id */
+            snapshot_id: number;
+            /**
+             * Snapshot As Of
+             * Format: date
+             */
+            snapshot_as_of: string;
+            /**
+             * Fact Until
+             * Format: date
+             */
+            fact_until: string;
+            /** Daily */
+            daily: components["schemas"]["PlanFactDay"][];
+            /** Events */
+            events: components["schemas"]["PlanFactEvent"][];
+            summary: components["schemas"]["PlanFactSummary"];
+        };
+        /** PlanFactSummary */
+        PlanFactSummary: {
+            /** Inflow Deviation Pct */
+            inflow_deviation_pct: number;
+            /** Outflow Deviation Pct */
+            outflow_deviation_pct: number;
+            /** Missed Events */
+            missed_events: number;
+        };
+        /** ReceivableInvoice */
+        ReceivableInvoice: {
+            /** Doc No */
+            doc_no: string;
+            /**
+             * Doc Date
+             * Format: date
+             */
+            doc_date: string;
+            /** Amount */
+            amount: number;
+            /** Age Days */
+            age_days: number;
+            /**
+             * Expected From
+             * Format: date
+             */
+            expected_from: string;
+            /**
+             * Expected To
+             * Format: date
+             */
+            expected_to: string;
+            /** Overdue By Client Standard */
+            overdue_by_client_standard: boolean;
+        };
+        /** ReceivableRow */
+        ReceivableRow: {
+            /** Counterparty Inn */
+            counterparty_inn?: string | null;
+            /** Counterparty */
+            counterparty?: string | null;
+            /** Open Amount */
+            open_amount: number;
+            /** Typical Delay Days */
+            typical_delay_days: number;
+            /** Delay Spread Days */
+            delay_spread_days: number;
+            /**
+             * Profile Level
+             * @enum {string}
+             */
+            profile_level: "client" | "company" | "industry" | "default";
+            /** Overdue Amount */
+            overdue_amount: number;
+            /** Invoices */
+            invoices: components["schemas"]["ReceivableInvoice"][];
+        };
+        /** ReceivablesResponse */
+        ReceivablesResponse: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            /** Connected */
+            connected: boolean;
+            /** Source */
+            source?: string | null;
+            /** Source Label */
+            source_label?: string | null;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Total */
+            total: number;
+            /** Overdue Total */
+            overdue_total: number;
+            /** Rows */
+            rows: components["schemas"]["ReceivableRow"][];
         };
         /** Recommendation */
         Recommendation: {
@@ -523,6 +1298,47 @@ export interface components {
             /** Shortfall P50 After */
             shortfall_p50_after: number;
         };
+        /** RecurringOut */
+        RecurringOut: {
+            /** Key */
+            key: string;
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            /** Schedule */
+            schedule: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Last Date
+             * Format: date
+             */
+            last_date: string;
+            /** Active */
+            active: boolean;
+            /** Confidence */
+            confidence: number;
+            /** Mandatory */
+            mandatory: boolean;
+            /** Counterparty */
+            counterparty?: string | null;
+            /** Explain */
+            explain: string;
+        };
+        /** ReplayAdvanceRequest */
+        ReplayAdvanceRequest: {
+            /**
+             * Days
+             * @default 1
+             */
+            days: number;
+        };
         /**
          * ReplayInfo
          * @description Машина времени (демо): данные после `data_as_of` уже загружены, но скрыты и «подгружаются» шагами.
@@ -537,6 +1353,60 @@ export interface components {
              * @default false
              */
             can_advance: boolean;
+        };
+        /** ReplayResetRequest */
+        ReplayResetRequest: {
+            /** As Of */
+            as_of?: string | null;
+        };
+        /** ReplayResult */
+        ReplayResult: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Previous As Of
+             * Format: date
+             */
+            previous_as_of: string;
+            /** New Operations */
+            new_operations: number;
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "green" | "yellow" | "red";
+            /** Gap Probability */
+            gap_probability: number;
+            /** Gap Probability Before */
+            gap_probability_before?: number | null;
+            /** Headline */
+            headline: string;
+            /** Alerts */
+            alerts: components["schemas"]["Alert"][];
+            /** Snapshot Id */
+            snapshot_id: number;
+            /**
+             * Data Until
+             * Format: date
+             */
+            data_until: string;
+            /** Can Advance */
+            can_advance: boolean;
+        };
+        /** RevenueDropShock */
+        RevenueDropShock: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "revenue_drop";
+            /** Pct */
+            pct: number;
+            /** From */
+            from?: string | null;
         };
         /** Risk */
         Risk: {
@@ -575,6 +1445,54 @@ export interface components {
              */
             flags: string[];
         };
+        /** ScenarioDelta */
+        ScenarioDelta: {
+            /** Gap Probability */
+            gap_probability: number;
+            /** Shortfall P50 */
+            shortfall_p50: number;
+            /** Gap Date Shift Days */
+            gap_date_shift_days?: number | null;
+        };
+        /** ScenarioForecast */
+        ScenarioForecast: {
+            /** Daily */
+            daily: components["schemas"]["DailyPoint"][];
+            risk: components["schemas"]["Risk"];
+        };
+        /** ScenarioPreset */
+        ScenarioPreset: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            request: components["schemas"]["ScenarioRequest"];
+        };
+        /** ScenarioPresets */
+        ScenarioPresets: {
+            /** Presets */
+            presets: components["schemas"]["ScenarioPreset"][];
+        };
+        /** ScenarioRequest */
+        ScenarioRequest: {
+            /**
+             * Horizon Days
+             * @default 30
+             */
+            horizon_days: number;
+            /** Shocks */
+            shocks: (components["schemas"]["ClientDelayShock"] | components["schemas"]["RevenueDropShock"] | components["schemas"]["OneOffExpenseShock"] | components["schemas"]["FixedCostIncreaseShock"])[];
+        };
+        /** ScenarioResponse */
+        ScenarioResponse: {
+            base: components["schemas"]["ScenarioForecast"];
+            scenario: components["schemas"]["ScenarioForecast"];
+            delta: components["schemas"]["ScenarioDelta"];
+            /** Summary */
+            summary: string;
+        };
         /**
          * SettingsPatch
          * @description Частичное обновление настроек. `telegram_chat_id` хранится у пользователя, а не в настройках бизнеса.
@@ -595,6 +1513,30 @@ export interface components {
             /** Telegram Chat Id */
             telegram_chat_id?: string | null;
         };
+        /** SnapshotBrief */
+        SnapshotBrief: {
+            /** Id */
+            id: number;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Horizon */
+            horizon: number;
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "green" | "yellow" | "red";
+            /** Gap Probability */
+            gap_probability: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -606,6 +1548,58 @@ export interface components {
              */
             token_type: "bearer";
             user: components["schemas"]["UserOut"];
+        };
+        /** TransactionOut */
+        TransactionOut: {
+            /** Id */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            /** Counterparty Inn */
+            counterparty_inn?: string | null;
+            /** Counterparty Name */
+            counterparty_name?: string | null;
+            /** Purpose */
+            purpose?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Category Title */
+            category_title?: string | null;
+            /** Category Source */
+            category_source?: ("user" | "rule" | "name_rule" | "memory" | "ml" | "unknown") | null;
+            /**
+             * Needs Review
+             * @default false
+             */
+            needs_review: boolean;
+            /**
+             * Flags
+             * @default []
+             */
+            flags: string[];
+        };
+        /** TransactionPage */
+        TransactionPage: {
+            /** Items */
+            items: components["schemas"]["TransactionOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Needs Review Count */
+            needs_review_count: number;
         };
         /** UserOut */
         UserOut: {
@@ -888,6 +1882,687 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_categories_api_v1_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryInfo"][];
+                };
+            };
+        };
+    };
+    list_transactions_api_v1_businesses__bid__transactions_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                category?: string | null;
+                q?: string | null;
+                review?: boolean;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_transaction_api_v1_businesses__bid__transactions__tid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tid: number;
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryPatchResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    categories_summary_api_v1_businesses__bid__categories_summary_get: {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorySummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_statement_api_v1_businesses__bid__imports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_statement_api_v1_businesses__bid__imports_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_events_api_v1_businesses__bid__events_get: {
+        parameters: {
+            query?: {
+                include_cancelled?: boolean;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_event_api_v1_businesses__bid__events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_events_api_v1_businesses__bid__events_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_events_api_v1_businesses__bid__events_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_event_api_v1_businesses__bid__events__eid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: number;
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_event_api_v1_businesses__bid__events__eid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: number;
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receivables_api_v1_businesses__bid__receivables_get: {
+        parameters: {
+            query?: {
+                direction?: "in" | "out";
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivablesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recurring_api_v1_businesses__bid__recurring_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scenario_presets_api_v1_businesses__bid__scenarios_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioPresets"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_scenario_api_v1_businesses__bid__scenarios_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScenarioRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_fact_api_v1_businesses__bid__plan_fact_get: {
+        parameters: {
+            query?: {
+                snapshot_id?: number | null;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanFactResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    snapshots_api_v1_businesses__bid__snapshots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotBrief"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    alerts_api_v1_businesses__bid__alerts_get: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_alert_api_v1_businesses__bid__alerts__aid__ack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                aid: number;
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_advance_api_v1_demo_businesses__bid__replay_advance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplayAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplayResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_reset_api_v1_demo_businesses__bid__replay_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplayResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplayResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backtest_api_v1_quality_backtest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestReport"];
                 };
             };
         };

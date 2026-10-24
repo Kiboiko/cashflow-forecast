@@ -175,6 +175,40 @@ export function Stat({
   )
 }
 
+/** Вкладки раздела: лента с подчёркиванием активной, листается по горизонтали на узких экранах. */
+export function Tabs<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T
+  options: Array<{ value: T; label: string; badge?: ReactNode }>
+  onChange: (value: T) => void
+  label: string
+}) {
+  return (
+    <div role="tablist" aria-label={label} className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="tab"
+          aria-selected={option.value === value}
+          onClick={() => onChange(option.value)}
+          className={cx(
+            'flex min-h-11 flex-none items-center gap-1.5 border-b-2 px-3 text-[15px] font-medium transition',
+            option.value === value ? 'border-accent text-ink' : 'border-transparent text-ink-2 hover:text-ink',
+          )}
+        >
+          {option.label}
+          {option.badge}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** Подпись-фильтр в одну строку (сегментированный переключатель). */
 export function Segmented<T extends string | number>({
   value,
