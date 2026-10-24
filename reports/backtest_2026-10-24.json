@@ -190,76 +190,76 @@
         "title": "Структурный, выручка M0",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.055107408581091546,
-            "rel_mae_mean": 0.20259685987164483,
-            "interval_coverage": 0.747481684981685,
+            "rel_mae_median": 0.05309011959150778,
+            "rel_mae_mean": 0.20191570165488068,
+            "interval_coverage": 0.7479395604395604,
             "detection": {
               "n": 624,
               "positives": 30,
-              "precision": 0.3076923076923077,
+              "precision": 0.30434782608695654,
               "recall": 0.9333333333333333,
-              "roc_auc": 0.9831369248035915,
-              "pr_auc": 0.820199194645676
+              "roc_auc": 0.9828843995510662,
+              "pr_auc": 0.7903632341279984
             },
             "detection_red": {
               "n": 624,
               "positives": 30,
               "precision": 0.45,
               "recall": 0.9,
-              "roc_auc": 0.9831369248035915,
-              "pr_auc": 0.820199194645676
+              "roc_auc": 0.9828843995510662,
+              "pr_auc": 0.7903632341279984
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.3232855142554736
+            "shortfall_error_rel_median": 0.2791094146433414
           },
           "14": {
-            "rel_mae_median": 0.11511149244755181,
-            "rel_mae_mean": 0.3107630002448097,
-            "interval_coverage": 0.7454212454212454,
+            "rel_mae_median": 0.11402592378809434,
+            "rel_mae_mean": 0.3099182365964341,
+            "interval_coverage": 0.7442765567765568,
             "detection": {
               "n": 624,
               "positives": 46,
               "precision": 0.3115942028985507,
               "recall": 0.9347826086956522,
-              "roc_auc": 0.9353279675041372,
-              "pr_auc": 0.6362029966516829
+              "roc_auc": 0.9357040770272302,
+              "pr_auc": 0.6324689443054233
             },
             "detection_red": {
               "n": 624,
               "positives": 46,
-              "precision": 0.4675324675324675,
+              "precision": 0.47368421052631576,
               "recall": 0.782608695652174,
-              "roc_auc": 0.9353279675041372,
-              "pr_auc": 0.6362029966516829
+              "roc_auc": 0.9357040770272302,
+              "pr_auc": 0.6324689443054233
             },
             "lead_days_median": 3.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.5473080892074977
+            "shortfall_error_rel_median": 0.5868571460091313
           },
           "30": {
-            "rel_mae_median": 0.19930093571873642,
-            "rel_mae_mean": 0.5031668548867919,
-            "interval_coverage": 0.7397435897435897,
+            "rel_mae_median": 0.1927256412207935,
+            "rel_mae_mean": 0.5004907946491084,
+            "interval_coverage": 0.7379807692307693,
             "detection": {
               "n": 624,
               "positives": 73,
-              "precision": 0.34554973821989526,
+              "precision": 0.3473684210526316,
               "recall": 0.9041095890410958,
-              "roc_auc": 0.926733460955175,
-              "pr_auc": 0.7110537567816625
+              "roc_auc": 0.9284613280958656,
+              "pr_auc": 0.7118684637903996
             },
             "detection_red": {
               "n": 624,
               "positives": 73,
-              "precision": 0.5,
+              "precision": 0.49166666666666664,
               "recall": 0.8082191780821918,
-              "roc_auc": 0.926733460955175,
-              "pr_auc": 0.7110537567816625
+              "roc_auc": 0.9284613280958656,
+              "pr_auc": 0.7118684637903996
             },
             "lead_days_median": 11.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.5857587788907526
+            "shortfall_error_rel_median": 0.6017225058406213
           }
         }
       },
@@ -267,76 +267,76 @@
         "title": "Структурный, выручка M1",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.0570165464319677,
-            "rel_mae_mean": 0.20327780192603329,
-            "interval_coverage": 0.7481684981684982,
+            "rel_mae_median": 0.05400533825736521,
+            "rel_mae_mean": 0.2025137121803482,
+            "interval_coverage": 0.7522893772893773,
             "detection": {
               "n": 624,
               "positives": 30,
-              "precision": 0.3076923076923077,
+              "precision": 0.30434782608695654,
               "recall": 0.9333333333333333,
-              "roc_auc": 0.9829405162738496,
-              "pr_auc": 0.818396477792724
+              "roc_auc": 0.9825757575757577,
+              "pr_auc": 0.788249006694846
             },
             "detection_red": {
               "n": 624,
               "positives": 30,
               "precision": 0.4406779661016949,
               "recall": 0.8666666666666667,
-              "roc_auc": 0.9829405162738496,
-              "pr_auc": 0.818396477792724
+              "roc_auc": 0.9825757575757577,
+              "pr_auc": 0.788249006694846
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.22568455970324064
+            "shortfall_error_rel_median": 0.20915460607526448
           },
           "14": {
-            "rel_mae_median": 0.11483295670666674,
-            "rel_mae_mean": 0.3097764244790119,
-            "interval_coverage": 0.747481684981685,
+            "rel_mae_median": 0.11269998537735396,
+            "rel_mae_mean": 0.3088062407322466,
+            "interval_coverage": 0.7489697802197802,
             "detection": {
               "n": 624,
               "positives": 46,
-              "precision": 0.31851851851851853,
+              "precision": 0.3208955223880597,
               "recall": 0.9347826086956522,
-              "roc_auc": 0.9365691289303445,
-              "pr_auc": 0.63935304586491
+              "roc_auc": 0.9368888220249738,
+              "pr_auc": 0.6342069659877977
             },
             "detection_red": {
               "n": 624,
               "positives": 46,
-              "precision": 0.4605263157894737,
+              "precision": 0.4666666666666667,
               "recall": 0.7608695652173914,
-              "roc_auc": 0.9365691289303445,
-              "pr_auc": 0.63935304586491
+              "roc_auc": 0.9368888220249738,
+              "pr_auc": 0.6342069659877977
             },
             "lead_days_median": 3.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.6116328170329457
+            "shortfall_error_rel_median": 0.6165878656721113
           },
           "30": {
-            "rel_mae_median": 0.18879227005393373,
-            "rel_mae_mean": 0.4898461633195472,
-            "interval_coverage": 0.7458867521367522,
+            "rel_mae_median": 0.18691707336163832,
+            "rel_mae_mean": 0.487241126146819,
+            "interval_coverage": 0.7459935897435898,
             "detection": {
               "n": 624,
               "positives": 73,
-              "precision": 0.3602150537634409,
-              "recall": 0.9178082191780822,
-              "roc_auc": 0.9287099420729433,
-              "pr_auc": 0.7247256484256578
+              "precision": 0.3675675675675676,
+              "recall": 0.9315068493150684,
+              "roc_auc": 0.9308604529746662,
+              "pr_auc": 0.7164379016350227
             },
             "detection_red": {
               "n": 624,
               "positives": 73,
-              "precision": 0.5045045045045045,
-              "recall": 0.7671232876712328,
-              "roc_auc": 0.9287099420729433,
-              "pr_auc": 0.7247256484256578
+              "precision": 0.504424778761062,
+              "recall": 0.7808219178082192,
+              "roc_auc": 0.9308604529746662,
+              "pr_auc": 0.7164379016350227
             },
             "lead_days_median": 11.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.6165878656721113
+            "shortfall_error_rel_median": 0.6191473088345655
           }
         }
       },
@@ -344,76 +344,76 @@
         "title": "Структурный + калибровка шанса",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.0570165464319677,
-            "rel_mae_mean": 0.20327780192603329,
-            "interval_coverage": 0.7481684981684982,
+            "rel_mae_median": 0.05400533825736521,
+            "rel_mae_mean": 0.2025137121803482,
+            "interval_coverage": 0.7522893772893773,
             "detection": {
               "n": 624,
               "positives": 30,
-              "precision": 0.34146341463414637,
+              "precision": 0.345679012345679,
               "recall": 0.9333333333333333,
-              "roc_auc": 0.9829405162738496,
-              "pr_auc": 0.818396477792724
+              "roc_auc": 0.9825757575757577,
+              "pr_auc": 0.788249006694846
             },
             "detection_red": {
               "n": 624,
               "positives": 30,
-              "precision": 0.6756756756756757,
+              "precision": 0.625,
               "recall": 0.8333333333333334,
-              "roc_auc": 0.9829405162738496,
-              "pr_auc": 0.818396477792724
+              "roc_auc": 0.9825757575757577,
+              "pr_auc": 0.788249006694846
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.22568455970324064
+            "shortfall_error_rel_median": 0.20915460607526448
           },
           "14": {
-            "rel_mae_median": 0.11483295670666674,
-            "rel_mae_mean": 0.3097764244790119,
-            "interval_coverage": 0.747481684981685,
+            "rel_mae_median": 0.11269998537735396,
+            "rel_mae_mean": 0.3088062407322466,
+            "interval_coverage": 0.7489697802197802,
             "detection": {
               "n": 624,
               "positives": 46,
-              "precision": 0.3333333333333333,
+              "precision": 0.3389830508474576,
               "recall": 0.8695652173913043,
-              "roc_auc": 0.9365691289303445,
-              "pr_auc": 0.63935304586491
+              "roc_auc": 0.9368888220249738,
+              "pr_auc": 0.6342069659877977
             },
             "detection_red": {
               "n": 624,
               "positives": 46,
-              "precision": 0.6041666666666666,
+              "precision": 0.6170212765957447,
               "recall": 0.6304347826086957,
-              "roc_auc": 0.9365691289303445,
-              "pr_auc": 0.63935304586491
+              "roc_auc": 0.9368888220249738,
+              "pr_auc": 0.6342069659877977
             },
             "lead_days_median": 2.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.5794704531202217
+            "shortfall_error_rel_median": 0.6017225058406213
           },
           "30": {
-            "rel_mae_median": 0.18879227005393373,
-            "rel_mae_mean": 0.4898461633195472,
-            "interval_coverage": 0.7458867521367522,
+            "rel_mae_median": 0.18691707336163832,
+            "rel_mae_mean": 0.487241126146819,
+            "interval_coverage": 0.7459935897435898,
             "detection": {
               "n": 624,
               "positives": 73,
-              "precision": 0.3806818181818182,
+              "precision": 0.3872832369942196,
               "recall": 0.9178082191780822,
-              "roc_auc": 0.9287099420729433,
-              "pr_auc": 0.7247256484256578
+              "roc_auc": 0.9308604529746662,
+              "pr_auc": 0.7164379016350227
             },
             "detection_red": {
               "n": 624,
               "positives": 73,
-              "precision": 0.7735849056603774,
-              "recall": 0.5616438356164384,
-              "roc_auc": 0.9287099420729433,
-              "pr_auc": 0.7247256484256578
+              "precision": 0.7692307692307693,
+              "recall": 0.547945205479452,
+              "roc_auc": 0.9308604529746662,
+              "pr_auc": 0.7164379016350227
             },
             "lead_days_median": 11.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.6165878656721113
+            "shortfall_error_rel_median": 0.6217067519970196
           }
         }
       },
@@ -421,76 +421,76 @@
         "title": "+ внешние данные (демо-учётная система)",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.04692372443173092,
-            "rel_mae_mean": 0.18659435840479816,
-            "interval_coverage": 0.7852564102564102,
+            "rel_mae_median": 0.04505443384126949,
+            "rel_mae_mean": 0.1871467526518152,
+            "interval_coverage": 0.7877747252747253,
             "detection": {
               "n": 624,
               "positives": 30,
-              "precision": 0.3783783783783784,
+              "precision": 0.37333333333333335,
               "recall": 0.9333333333333333,
-              "roc_auc": 0.9702861952861954,
-              "pr_auc": 0.7917170871331488
+              "roc_auc": 0.9703703703703703,
+              "pr_auc": 0.7918325071647652
             },
             "detection_red": {
               "n": 624,
               "positives": 30,
               "precision": 0.4909090909090909,
               "recall": 0.9,
-              "roc_auc": 0.9702861952861954,
-              "pr_auc": 0.7917170871331488
+              "roc_auc": 0.9703703703703703,
+              "pr_auc": 0.7918325071647652
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.27617675271907777
+            "shortfall_error_rel_median": 0.2638581820152803
           },
           "14": {
-            "rel_mae_median": 0.09653556131773729,
-            "rel_mae_mean": 0.29131487811714035,
-            "interval_coverage": 0.7438186813186813,
+            "rel_mae_median": 0.0940880375559478,
+            "rel_mae_mean": 0.29076316492833526,
+            "interval_coverage": 0.7535485347985347,
             "detection": {
               "n": 624,
               "positives": 46,
-              "precision": 0.3925233644859813,
+              "precision": 0.4,
               "recall": 0.9130434782608695,
-              "roc_auc": 0.9260568677598917,
-              "pr_auc": 0.6552985321989055
+              "roc_auc": 0.9251918158567775,
+              "pr_auc": 0.634659539185557
             },
             "detection_red": {
               "n": 624,
               "positives": 46,
-              "precision": 0.5211267605633803,
-              "recall": 0.8043478260869565,
-              "roc_auc": 0.9260568677598917,
-              "pr_auc": 0.6552985321989055
+              "precision": 0.5217391304347826,
+              "recall": 0.782608695652174,
+              "roc_auc": 0.9251918158567775,
+              "pr_auc": 0.634659539185557
             },
             "lead_days_median": 2.5,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.4128797121353475
+            "shortfall_error_rel_median": 0.49599407014574926
           },
           "30": {
-            "rel_mae_median": 0.1758127066702354,
-            "rel_mae_mean": 0.5027228378369062,
-            "interval_coverage": 0.705982905982906,
+            "rel_mae_median": 0.16800450007581158,
+            "rel_mae_mean": 0.49866956798529866,
+            "interval_coverage": 0.7252136752136752,
             "detection": {
               "n": 624,
               "positives": 73,
-              "precision": 0.4714285714285714,
+              "precision": 0.4647887323943662,
               "recall": 0.9041095890410958,
-              "roc_auc": 0.9310096213609129,
-              "pr_auc": 0.7323865326018117
+              "roc_auc": 0.9300400268503096,
+              "pr_auc": 0.7402071544350789
             },
             "detection_red": {
               "n": 624,
               "positives": 73,
-              "precision": 0.5833333333333334,
-              "recall": 0.7671232876712328,
-              "roc_auc": 0.9310096213609129,
-              "pr_auc": 0.7323865326018117
+              "precision": 0.58,
+              "recall": 0.7945205479452054,
+              "roc_auc": 0.9300400268503096,
+              "pr_auc": 0.7402071544350789
             },
             "lead_days_median": 11.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.484994119349692
+            "shortfall_error_rel_median": 0.5600957944487372
           }
         }
       },
@@ -498,76 +498,76 @@
         "title": "Структурный + ML, выручка M2 (бустинг)",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.05222794643911296,
-            "rel_mae_mean": 0.20001258411541406,
-            "interval_coverage": 0.752518315018315,
+            "rel_mae_median": 0.051138352744274626,
+            "rel_mae_mean": 0.19933142120375516,
+            "interval_coverage": 0.7516025641025641,
             "detection": {
               "n": 624,
               "positives": 30,
-              "precision": 0.3076923076923077,
+              "precision": 0.30434782608695654,
               "recall": 0.9333333333333333,
-              "roc_auc": 0.9833052749719415,
-              "pr_auc": 0.8200934304407635
+              "roc_auc": 0.982996632996633,
+              "pr_auc": 0.7935721970483419
             },
             "detection_red": {
               "n": 624,
               "positives": 30,
               "precision": 0.45,
               "recall": 0.9,
-              "roc_auc": 0.9833052749719415,
-              "pr_auc": 0.8200934304407635
+              "roc_auc": 0.982996632996633,
+              "pr_auc": 0.7935721970483419
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.33570003550085403
+            "shortfall_error_rel_median": 0.3428389659207775
           },
           "14": {
-            "rel_mae_median": 0.1102383289068362,
-            "rel_mae_mean": 0.30356896709730136,
-            "interval_coverage": 0.7497710622710623,
+            "rel_mae_median": 0.10582247136804426,
+            "rel_mae_mean": 0.30213885232005755,
+            "interval_coverage": 0.7501144688644689,
             "detection": {
               "n": 624,
               "positives": 46,
-              "precision": 0.3088235294117647,
+              "precision": 0.3111111111111111,
               "recall": 0.9130434782608695,
-              "roc_auc": 0.935779298931849,
-              "pr_auc": 0.6265649263969768
+              "roc_auc": 0.9361742139310967,
+              "pr_auc": 0.6238015070034061
             },
             "detection_red": {
               "n": 624,
               "positives": 46,
-              "precision": 0.45569620253164556,
+              "precision": 0.46153846153846156,
               "recall": 0.782608695652174,
-              "roc_auc": 0.935779298931849,
-              "pr_auc": 0.6265649263969768
+              "roc_auc": 0.9361742139310967,
+              "pr_auc": 0.6238015070034061
             },
             "lead_days_median": 2.5,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.5819479774398045
+            "shortfall_error_rel_median": 0.6192278100057442
           },
           "30": {
-            "rel_mae_median": 0.18343418964602115,
-            "rel_mae_mean": 0.48972166549702056,
-            "interval_coverage": 0.7447649572649573,
+            "rel_mae_median": 0.1811520248443115,
+            "rel_mae_mean": 0.487178137970604,
+            "interval_coverage": 0.7452457264957265,
             "detection": {
               "n": 624,
               "positives": 73,
-              "precision": 0.3541666666666667,
+              "precision": 0.36363636363636365,
               "recall": 0.9315068493150684,
-              "roc_auc": 0.9300400268503096,
-              "pr_auc": 0.7145921567276537
+              "roc_auc": 0.9322153991497402,
+              "pr_auc": 0.7194904478560581
             },
             "detection_red": {
               "n": 624,
               "positives": 73,
-              "precision": 0.49137931034482757,
-              "recall": 0.7808219178082192,
-              "roc_auc": 0.9300400268503096,
-              "pr_auc": 0.7145921567276537
+              "precision": 0.4915254237288136,
+              "recall": 0.7945205479452054,
+              "roc_auc": 0.9322153991497402,
+              "pr_auc": 0.7194904478560581
             },
             "lead_days_median": 11.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.5819479774398045
+            "shortfall_error_rel_median": 0.6017225058406213
           }
         }
       }
@@ -584,8 +584,8 @@
         "actual_share": 0.3953020881063535
       },
       "platform_in": {
-        "wape": 0.375269492231151,
-        "bias": -0.12339852469199057,
+        "wape": 0.3326028969531411,
+        "bias": -0.017263340413186723,
         "actual_share": 0.026926143626863984
       },
       "other_in": {
@@ -594,8 +594,8 @@
         "actual_share": 0.0003890395735735854
       },
       "salary": {
-        "wape": 0.2112078149490948,
-        "bias": -0.12061915936045013,
+        "wape": 0.19086120701142134,
+        "bias": -0.0821237898819277,
         "actual_share": 0.06293595939096702
       },
       "tax_enp": {
@@ -604,23 +604,23 @@
         "actual_share": 0.05506703369326064
       },
       "rent": {
-        "wape": 0.21297560090305429,
-        "bias": -0.06662009662345857,
+        "wape": 0.21185702435708856,
+        "bias": -0.06533889343554536,
         "actual_share": 0.02107501637716579
       },
       "debt": {
-        "wape": 1.1058520327719554,
-        "bias": 0.044554836068173787,
+        "wape": 1.1111752199409288,
+        "bias": 0.056587228600315245,
         "actual_share": 0.006608951195504747
       },
       "suppliers": {
-        "wape": 0.30659650589894566,
-        "bias": -0.017795456721669545,
+        "wape": 0.3068112142985128,
+        "bias": -0.016729083909624656,
         "actual_share": 0.3143378784764492
       },
       "other_out": {
-        "wape": 0.2460954957058583,
-        "bias": -0.12001441701185815,
+        "wape": 0.24122290468456506,
+        "bias": -0.03332565901034419,
         "actual_share": 0.01837784375491414
       }
     },
@@ -824,76 +824,76 @@
         "title": "Структурный, выручка M0",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.07657295831206301,
-            "rel_mae_mean": 0.2136143823638096,
-            "interval_coverage": 0.7312791783380019,
+            "rel_mae_median": 0.0764623143367411,
+            "rel_mae_mean": 0.21601214951558126,
+            "interval_coverage": 0.7247432306255835,
             "detection": {
               "n": 765,
               "positives": 57,
-              "precision": 0.325,
+              "precision": 0.32098765432098764,
               "recall": 0.9122807017543859,
-              "roc_auc": 0.9494127267320844,
-              "pr_auc": 0.7828601467295513
+              "roc_auc": 0.9484339379522253,
+              "pr_auc": 0.7749693590840234
             },
             "detection_red": {
               "n": 765,
               "positives": 57,
-              "precision": 0.5529411764705883,
+              "precision": 0.5340909090909091,
               "recall": 0.8245614035087719,
-              "roc_auc": 0.9494127267320844,
-              "pr_auc": 0.7828601467295513
+              "roc_auc": 0.9484339379522253,
+              "pr_auc": 0.7749693590840234
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.3601954444959949
+            "shortfall_error_rel_median": 0.3561563756203178
           },
           "14": {
-            "rel_mae_median": 0.12413918374265845,
-            "rel_mae_mean": 0.3298253902698481,
-            "interval_coverage": 0.7529411764705882,
+            "rel_mae_median": 0.12287762513733781,
+            "rel_mae_mean": 0.3325386605502831,
+            "interval_coverage": 0.7452847805788981,
             "detection": {
               "n": 765,
               "positives": 76,
-              "precision": 0.3364485981308411,
+              "precision": 0.33488372093023255,
               "recall": 0.9473684210526315,
-              "roc_auc": 0.9524386983423727,
-              "pr_auc": 0.7628887158492341
+              "roc_auc": 0.9521999847223284,
+              "pr_auc": 0.7478434819161277
             },
             "detection_red": {
               "n": 765,
               "positives": 76,
-              "precision": 0.49612403100775193,
+              "precision": 0.48854961832061067,
               "recall": 0.8421052631578947,
-              "roc_auc": 0.9524386983423727,
-              "pr_auc": 0.7628887158492341
+              "roc_auc": 0.9521999847223284,
+              "pr_auc": 0.7478434819161277
             },
             "lead_days_median": 3.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.48830944472539795
+            "shortfall_error_rel_median": 0.5217476664053105
           },
           "30": {
-            "rel_mae_median": 0.1900434591551184,
-            "rel_mae_mean": 0.5105960558955714,
-            "interval_coverage": 0.7769063180827888,
+            "rel_mae_median": 0.1850864121752279,
+            "rel_mae_mean": 0.5104289984684458,
+            "interval_coverage": 0.7777342047930283,
             "detection": {
               "n": 765,
               "positives": 118,
-              "precision": 0.39100346020761245,
+              "precision": 0.39372822299651566,
               "recall": 0.9576271186440678,
-              "roc_auc": 0.9355630943336913,
-              "pr_auc": 0.7810483947048948
+              "roc_auc": 0.9363555392554946,
+              "pr_auc": 0.783385882545433
             },
             "detection_red": {
               "n": 765,
               "positives": 118,
-              "precision": 0.531578947368421,
+              "precision": 0.5287958115183246,
               "recall": 0.8559322033898306,
-              "roc_auc": 0.9355630943336913,
-              "pr_auc": 0.7810483947048948
+              "roc_auc": 0.9363555392554946,
+              "pr_auc": 0.783385882545433
             },
             "lead_days_median": 8.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.47098831302245686
+            "shortfall_error_rel_median": 0.46783605067379325
           }
         }
       },
@@ -901,76 +901,76 @@
         "title": "Структурный, выручка M1",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.07624271007805732,
-            "rel_mae_mean": 0.2133391608919225,
-            "interval_coverage": 0.7314659197012138,
+            "rel_mae_median": 0.07719686584819278,
+            "rel_mae_mean": 0.21572816342172366,
+            "interval_coverage": 0.7284780578898226,
             "detection": {
               "n": 765,
               "positives": 57,
-              "precision": 0.3291139240506329,
+              "precision": 0.325,
               "recall": 0.9122807017543859,
-              "roc_auc": 0.9564872633561304,
-              "pr_auc": 0.7821065783810599
+              "roc_auc": 0.9556571513529586,
+              "pr_auc": 0.7768759449370473
             },
             "detection_red": {
               "n": 765,
               "positives": 57,
-              "precision": 0.5529411764705883,
+              "precision": 0.5465116279069767,
               "recall": 0.8245614035087719,
-              "roc_auc": 0.9564872633561304,
-              "pr_auc": 0.7821065783810599
+              "roc_auc": 0.9556571513529586,
+              "pr_auc": 0.7768759449370473
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.30620307660896395
+            "shortfall_error_rel_median": 0.3321082398139613
           },
           "14": {
-            "rel_mae_median": 0.12376623032964128,
-            "rel_mae_mean": 0.3285066795112869,
-            "interval_coverage": 0.7569561157796452,
+            "rel_mae_median": 0.12447031926879158,
+            "rel_mae_mean": 0.33142475488473283,
+            "interval_coverage": 0.7508870214752568,
             "detection": {
               "n": 765,
               "positives": 76,
-              "precision": 0.34285714285714286,
+              "precision": 0.3412322274881517,
               "recall": 0.9473684210526315,
-              "roc_auc": 0.9548926743564281,
-              "pr_auc": 0.767874793329195
+              "roc_auc": 0.9540428538690704,
+              "pr_auc": 0.7512392342415877
             },
             "detection_red": {
               "n": 765,
               "positives": 76,
-              "precision": 0.5,
-              "recall": 0.8157894736842105,
-              "roc_auc": 0.9548926743564281,
-              "pr_auc": 0.767874793329195
+              "precision": 0.5080645161290323,
+              "recall": 0.8289473684210527,
+              "roc_auc": 0.9540428538690704,
+              "pr_auc": 0.7512392342415877
             },
             "lead_days_median": 3.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.47723712113318073
+            "shortfall_error_rel_median": 0.46312663956722666
           },
           "30": {
-            "rel_mae_median": 0.19478334187065524,
-            "rel_mae_mean": 0.5047470343143062,
-            "interval_coverage": 0.7878431372549021,
+            "rel_mae_median": 0.18976103536452088,
+            "rel_mae_mean": 0.5053167240596816,
+            "interval_coverage": 0.7848801742919391,
             "detection": {
               "n": 765,
               "positives": 118,
-              "precision": 0.3951890034364261,
-              "recall": 0.9745762711864406,
-              "roc_auc": 0.940638671312184,
-              "pr_auc": 0.7942941486917952
+              "precision": 0.3958333333333333,
+              "recall": 0.9661016949152542,
+              "roc_auc": 0.9408089487333979,
+              "pr_auc": 0.7951941242777629
             },
             "detection_red": {
               "n": 765,
               "positives": 118,
-              "precision": 0.5611111111111111,
-              "recall": 0.8559322033898306,
-              "roc_auc": 0.940638671312184,
-              "pr_auc": 0.7942941486917952
+              "precision": 0.5513513513513514,
+              "recall": 0.864406779661017,
+              "roc_auc": 0.9408089487333979,
+              "pr_auc": 0.7951941242777629
             },
             "lead_days_median": 8.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.4223178498869445
+            "shortfall_error_rel_median": 0.4384278949189543
           }
         }
       },
@@ -978,76 +978,76 @@
         "title": "Структурный + калибровка шанса",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.07624271007805732,
-            "rel_mae_mean": 0.2133391608919225,
-            "interval_coverage": 0.7314659197012138,
+            "rel_mae_median": 0.07719686584819278,
+            "rel_mae_mean": 0.21572816342172366,
+            "interval_coverage": 0.7284780578898226,
             "detection": {
               "n": 765,
               "positives": 57,
               "precision": 0.3611111111111111,
               "recall": 0.9122807017543859,
-              "roc_auc": 0.9564872633561304,
-              "pr_auc": 0.7821065783810599
+              "roc_auc": 0.9556571513529586,
+              "pr_auc": 0.7768759449370473
             },
             "detection_red": {
               "n": 765,
               "positives": 57,
-              "precision": 0.7169811320754716,
-              "recall": 0.6666666666666666,
-              "roc_auc": 0.9564872633561304,
-              "pr_auc": 0.7821065783810599
+              "precision": 0.6981132075471698,
+              "recall": 0.6491228070175439,
+              "roc_auc": 0.9556571513529586,
+              "pr_auc": 0.7768759449370473
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.30620307660896395
+            "shortfall_error_rel_median": 0.3321082398139613
           },
           "14": {
-            "rel_mae_median": 0.12376623032964128,
-            "rel_mae_mean": 0.3285066795112869,
-            "interval_coverage": 0.7569561157796452,
+            "rel_mae_median": 0.12447031926879158,
+            "rel_mae_mean": 0.33142475488473283,
+            "interval_coverage": 0.7508870214752568,
             "detection": {
               "n": 765,
               "positives": 76,
-              "precision": 0.36597938144329895,
+              "precision": 0.36787564766839376,
               "recall": 0.9342105263157895,
-              "roc_auc": 0.9548926743564281,
-              "pr_auc": 0.767874793329195
+              "roc_auc": 0.9540428538690704,
+              "pr_auc": 0.7512392342415877
             },
             "detection_red": {
               "n": 765,
               "positives": 76,
-              "precision": 0.7619047619047619,
-              "recall": 0.631578947368421,
-              "roc_auc": 0.9548926743564281,
-              "pr_auc": 0.767874793329195
+              "precision": 0.7704918032786885,
+              "recall": 0.618421052631579,
+              "roc_auc": 0.9540428538690704,
+              "pr_auc": 0.7512392342415877
             },
             "lead_days_median": 3.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.47098831302245686
+            "shortfall_error_rel_median": 0.44501561864806266
           },
           "30": {
-            "rel_mae_median": 0.19478334187065524,
-            "rel_mae_mean": 0.5047470343143062,
-            "interval_coverage": 0.7878431372549021,
+            "rel_mae_median": 0.18976103536452088,
+            "rel_mae_mean": 0.5053167240596816,
+            "interval_coverage": 0.7848801742919391,
             "detection": {
               "n": 765,
               "positives": 118,
               "precision": 0.42641509433962266,
               "recall": 0.9576271186440678,
-              "roc_auc": 0.940638671312184,
-              "pr_auc": 0.7942941486917952
+              "roc_auc": 0.9408089487333979,
+              "pr_auc": 0.7951941242777629
             },
             "detection_red": {
               "n": 765,
               "positives": 118,
-              "precision": 0.8333333333333334,
-              "recall": 0.5508474576271186,
-              "roc_auc": 0.940638671312184,
-              "pr_auc": 0.7942941486917952
+              "precision": 0.8354430379746836,
+              "recall": 0.559322033898305,
+              "roc_auc": 0.9408089487333979,
+              "pr_auc": 0.7951941242777629
             },
             "lead_days_median": 8.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.4629939684967425
+            "shortfall_error_rel_median": 0.44501561864806266
           }
         }
       },
@@ -1055,76 +1055,76 @@
         "title": "+ внешние данные (демо-учётная система)",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.06456621975705884,
-            "rel_mae_mean": 0.19108915095548462,
-            "interval_coverage": 0.753688141923436,
+            "rel_mae_median": 0.0647389000057512,
+            "rel_mae_mean": 0.19293621400164832,
+            "interval_coverage": 0.7482726423902895,
             "detection": {
               "n": 765,
               "positives": 57,
-              "precision": 0.4180327868852459,
+              "precision": 0.4214876033057851,
               "recall": 0.8947368421052632,
-              "roc_auc": 0.9590767172167707,
-              "pr_auc": 0.8127492767572504
+              "roc_auc": 0.9433789275448508,
+              "pr_auc": 0.7941484315363749
             },
             "detection_red": {
               "n": 765,
               "positives": 57,
-              "precision": 0.5384615384615384,
-              "recall": 0.8596491228070176,
-              "roc_auc": 0.9590767172167707,
-              "pr_auc": 0.8127492767572504
+              "precision": 0.5263157894736842,
+              "recall": 0.8771929824561403,
+              "roc_auc": 0.9433789275448508,
+              "pr_auc": 0.7941484315363749
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.29856528920927133
+            "shortfall_error_rel_median": 0.228064876751018
           },
           "14": {
-            "rel_mae_median": 0.11575815198080734,
-            "rel_mae_mean": 0.3019442722220888,
-            "interval_coverage": 0.7283846872082167,
+            "rel_mae_median": 0.11248169791851224,
+            "rel_mae_mean": 0.303288941612989,
+            "interval_coverage": 0.7234360410830999,
             "detection": {
               "n": 765,
               "positives": 76,
-              "precision": 0.4409937888198758,
-              "recall": 0.9342105263157895,
-              "roc_auc": 0.9634386219540143,
-              "pr_auc": 0.7770516751482451
+              "precision": 0.43209876543209874,
+              "recall": 0.9210526315789473,
+              "roc_auc": 0.9563345046214958,
+              "pr_auc": 0.7609849856010539
             },
             "detection_red": {
               "n": 765,
               "positives": 76,
-              "precision": 0.5317460317460317,
-              "recall": 0.881578947368421,
-              "roc_auc": 0.9634386219540143,
-              "pr_auc": 0.7770516751482451
+              "precision": 0.53125,
+              "recall": 0.8947368421052632,
+              "roc_auc": 0.9563345046214958,
+              "pr_auc": 0.7609849856010539
             },
-            "lead_days_median": 3.0,
+            "lead_days_median": 2.5,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.37662185471138276
+            "shortfall_error_rel_median": 0.3808357508865814
           },
           "30": {
-            "rel_mae_median": 0.1922557910924029,
-            "rel_mae_mean": 0.5071684992602866,
-            "interval_coverage": 0.7061002178649238,
+            "rel_mae_median": 0.188846411378222,
+            "rel_mae_mean": 0.5076195246987579,
+            "interval_coverage": 0.7198692810457517,
             "detection": {
               "n": 765,
               "positives": 118,
-              "precision": 0.48214285714285715,
+              "precision": 0.4778761061946903,
               "recall": 0.9152542372881356,
-              "roc_auc": 0.9464935949493096,
-              "pr_auc": 0.786823217204563
+              "roc_auc": 0.9444437167631574,
+              "pr_auc": 0.787933068277225
             },
             "detection_red": {
               "n": 765,
               "positives": 118,
-              "precision": 0.6139240506329114,
-              "recall": 0.8220338983050848,
-              "roc_auc": 0.9464935949493096,
-              "pr_auc": 0.786823217204563
+              "precision": 0.6086956521739131,
+              "recall": 0.8305084745762712,
+              "roc_auc": 0.9444437167631574,
+              "pr_auc": 0.787933068277225
             },
             "lead_days_median": 7.5,
-            "date_error_days_median": 3.0,
-            "shortfall_error_rel_median": 0.39743217812843235
+            "date_error_days_median": 2.5,
+            "shortfall_error_rel_median": 0.37909896987042013
           }
         }
       },
@@ -1132,76 +1132,76 @@
         "title": "Структурный + ML, выручка M2 (бустинг)",
         "horizons": {
           "7": {
-            "rel_mae_median": 0.07143079170436835,
-            "rel_mae_mean": 0.21160434699495806,
-            "interval_coverage": 0.7365079365079366,
+            "rel_mae_median": 0.07323869730649367,
+            "rel_mae_mean": 0.21404604077571396,
+            "interval_coverage": 0.7316526610644258,
             "detection": {
               "n": 765,
               "positives": 57,
-              "precision": 0.33121019108280253,
+              "precision": 0.3291139240506329,
               "recall": 0.9122807017543859,
-              "roc_auc": 0.9565368222816929,
-              "pr_auc": 0.7828557953640296
+              "roc_auc": 0.95528545941124,
+              "pr_auc": 0.7576251383852837
             },
             "detection_red": {
               "n": 765,
               "positives": 57,
-              "precision": 0.5595238095238095,
+              "precision": 0.5529411764705883,
               "recall": 0.8245614035087719,
-              "roc_auc": 0.9565368222816929,
-              "pr_auc": 0.7828557953640296
+              "roc_auc": 0.95528545941124,
+              "pr_auc": 0.7576251383852837
             },
             "lead_days_median": 1.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.3067081209561813
+            "shortfall_error_rel_median": 0.30006500791598023
           },
           "14": {
-            "rel_mae_median": 0.11982409224511989,
-            "rel_mae_mean": 0.32530044027941324,
-            "interval_coverage": 0.761437908496732,
+            "rel_mae_median": 0.12032154386718374,
+            "rel_mae_mean": 0.3281163637224206,
+            "interval_coverage": 0.7561157796451914,
             "detection": {
               "n": 765,
               "positives": 76,
-              "precision": 0.3412322274881517,
+              "precision": 0.3380281690140845,
               "recall": 0.9473684210526315,
-              "roc_auc": 0.9560098540982354,
-              "pr_auc": 0.7812650521776051
+              "roc_auc": 0.9552841646933008,
+              "pr_auc": 0.7659040206346087
             },
             "detection_red": {
               "n": 765,
               "positives": 76,
               "precision": 0.5080645161290323,
               "recall": 0.8289473684210527,
-              "roc_auc": 0.9560098540982354,
-              "pr_auc": 0.7812650521776051
+              "roc_auc": 0.9552841646933008,
+              "pr_auc": 0.7659040206346087
             },
             "lead_days_median": 3.0,
             "date_error_days_median": 0.0,
-            "shortfall_error_rel_median": 0.48830944472539795
+            "shortfall_error_rel_median": 0.47178064871812536
           },
           "30": {
-            "rel_mae_median": 0.18696047775756686,
-            "rel_mae_mean": 0.5013701329214755,
-            "interval_coverage": 0.795599128540305,
+            "rel_mae_median": 0.18575893565499696,
+            "rel_mae_mean": 0.5014100033614852,
+            "interval_coverage": 0.7944662309368191,
             "detection": {
               "n": 765,
               "positives": 118,
-              "precision": 0.3951890034364261,
-              "recall": 0.9745762711864406,
-              "roc_auc": 0.9396759489691666,
-              "pr_auc": 0.7946987743446718
+              "precision": 0.3931034482758621,
+              "recall": 0.9661016949152542,
+              "roc_auc": 0.9399182668378173,
+              "pr_auc": 0.7954921966637897
             },
             "detection_red": {
               "n": 765,
               "positives": 118,
-              "precision": 0.5555555555555556,
-              "recall": 0.847457627118644,
-              "roc_auc": 0.9396759489691666,
-              "pr_auc": 0.7946987743446718
+              "precision": 0.5489130434782609,
+              "recall": 0.8559322033898306,
+              "roc_auc": 0.9399182668378173,
+              "pr_auc": 0.7954921966637897
             },
             "lead_days_median": 8.0,
             "date_error_days_median": 2.0,
-            "shortfall_error_rel_median": 0.47098831302245686
+            "shortfall_error_rel_median": 0.43691580572740907
           }
         }
       }
@@ -1209,63 +1209,63 @@
     "by_industry": {
       "IT-услуги и разработка": {
         "n": 61,
-        "rel_mae_median": 0.3550385122779015
+        "rel_mae_median": 0.34332236606443
       },
       "Автосервис": {
         "n": 50,
-        "rel_mae_median": 0.14448027823330828
+        "rel_mae_median": 0.13492016587462516
       },
       "Гостиница / база отдыха": {
         "n": 36,
-        "rel_mae_median": 0.4239161200720253
+        "rel_mae_median": 0.4005590421429775
       },
       "Грузоперевозки": {
         "n": 48,
-        "rel_mae_median": 0.15325822551274548
+        "rel_mae_median": 0.15407105882129862
       },
       "Медицинская клиника / стоматология": {
         "n": 42,
-        "rel_mae_median": 0.09880165122409393
+        "rel_mae_median": 0.09984928340959692
       },
       "Образовательный центр для детей": {
         "n": 35,
-        "rel_mae_median": 0.1757327830293488
+        "rel_mae_median": 0.188892408675035
       },
       "Общепит (кофейня, кафе)": {
         "n": 77,
-        "rel_mae_median": 0.18146536789330756
+        "rel_mae_median": 0.1747274451904719
       },
       "Оптовая торговля": {
         "n": 65,
-        "rel_mae_median": 0.17555276286102645
+        "rel_mae_median": 0.17410015047011732
       },
       "Продажи на маркетплейсах": {
         "n": 64,
-        "rel_mae_median": 0.23220088199740813
+        "rel_mae_median": 0.23020721640810793
       },
       "Производство мебели на заказ": {
         "n": 47,
-        "rel_mae_median": 0.1550419684647528
+        "rel_mae_median": 0.14125863932530652
       },
       "Розница: одежда и обувь": {
         "n": 43,
-        "rel_mae_median": 0.25237174410602425
+        "rel_mae_median": 0.25115717002850985
       },
       "Розница: продуктовый магазин": {
         "n": 62,
-        "rel_mae_median": 0.09548571893032376
+        "rel_mae_median": 0.09427107893210263
       },
       "Салон красоты": {
         "n": 51,
-        "rel_mae_median": 0.10575931153398455
+        "rel_mae_median": 0.09535835815028201
       },
       "Сельское хозяйство (растениеводство)": {
         "n": 35,
-        "rel_mae_median": 1.5301656397230092
+        "rel_mae_median": 1.541136954539386
       },
       "Строительство и ремонт": {
         "n": 49,
-        "rel_mae_median": 0.6403936434171483
+        "rel_mae_median": 0.6260423779406413
       }
     },
     "external_ablation": {
@@ -1276,76 +1276,76 @@
           "title": "Структурный, выручка M1",
           "horizons": {
             "7": {
-              "rel_mae_median": 0.08798458525828418,
-              "rel_mae_mean": 0.18655341950546697,
-              "interval_coverage": 0.7110283852954863,
+              "rel_mae_median": 0.08744955074511722,
+              "rel_mae_mean": 0.19090606981794886,
+              "interval_coverage": 0.7073057235923685,
               "detection": {
                 "n": 307,
                 "positives": 10,
-                "precision": 0.2903225806451613,
+                "precision": 0.28125,
                 "recall": 0.9,
-                "roc_auc": 0.922053872053872,
-                "pr_auc": 0.5705150712479703
+                "roc_auc": 0.9212121212121211,
+                "pr_auc": 0.5526712484041474
               },
               "detection_red": {
                 "n": 307,
                 "positives": 10,
                 "precision": 0.4666666666666667,
                 "recall": 0.7,
-                "roc_auc": 0.922053872053872,
-                "pr_auc": 0.5705150712479703
+                "roc_auc": 0.9212121212121211,
+                "pr_auc": 0.5526712484041474
               },
               "lead_days_median": 1.0,
               "date_error_days_median": 0.0,
-              "shortfall_error_rel_median": 0.30288345360449587
+              "shortfall_error_rel_median": 0.304294182207876
             },
             "14": {
-              "rel_mae_median": 0.12020716786086721,
-              "rel_mae_mean": 0.23713284732863263,
-              "interval_coverage": 0.752442996742671,
+              "rel_mae_median": 0.11925808326815918,
+              "rel_mae_mean": 0.2408953644366194,
+              "interval_coverage": 0.7515123313168917,
               "detection": {
                 "n": 307,
                 "positives": 12,
-                "precision": 0.275,
+                "precision": 0.2682926829268293,
                 "recall": 0.9166666666666666,
-                "roc_auc": 0.928954802259887,
-                "pr_auc": 0.6118211263040253
+                "roc_auc": 0.9293785310734463,
+                "pr_auc": 0.6149555308152415
               },
               "detection_red": {
                 "n": 307,
                 "positives": 12,
-                "precision": 0.4,
+                "precision": 0.42105263157894735,
                 "recall": 0.6666666666666666,
-                "roc_auc": 0.928954802259887,
-                "pr_auc": 0.6118211263040253
+                "roc_auc": 0.9293785310734463,
+                "pr_auc": 0.6149555308152415
               },
               "lead_days_median": 2.0,
               "date_error_days_median": 1.0,
-              "shortfall_error_rel_median": 0.30288345360449587
+              "shortfall_error_rel_median": 0.304294182207876
             },
             "30": {
-              "rel_mae_median": 0.1686659361871114,
-              "rel_mae_mean": 0.3074972903625626,
-              "interval_coverage": 0.7947882736156353,
+              "rel_mae_median": 0.1644255375719301,
+              "rel_mae_mean": 0.30577734118489475,
+              "interval_coverage": 0.7954397394136807,
               "detection": {
                 "n": 307,
                 "positives": 23,
-                "precision": 0.28205128205128205,
+                "precision": 0.27848101265822783,
                 "recall": 0.9565217391304348,
-                "roc_auc": 0.9221524800979791,
-                "pr_auc": 0.583677718186747
+                "roc_auc": 0.9228413962033069,
+                "pr_auc": 0.5884527442892532
               },
               "detection_red": {
                 "n": 307,
                 "positives": 23,
                 "precision": 0.43902439024390244,
                 "recall": 0.782608695652174,
-                "roc_auc": 0.9221524800979791,
-                "pr_auc": 0.583677718186747
+                "roc_auc": 0.9228413962033069,
+                "pr_auc": 0.5884527442892532
               },
               "lead_days_median": 12.5,
               "date_error_days_median": 1.0,
-              "shortfall_error_rel_median": 0.3050247046633027
+              "shortfall_error_rel_median": 0.3002956695321961
             }
           }
         },
@@ -1353,76 +1353,76 @@
           "title": "+ внешние данные (демо-учётная система)",
           "horizons": {
             "7": {
-              "rel_mae_median": 0.06892511137720961,
-              "rel_mae_mean": 0.14202931886148917,
-              "interval_coverage": 0.7473243369008841,
+              "rel_mae_median": 0.07081307803123482,
+              "rel_mae_mean": 0.1445497330208505,
+              "interval_coverage": 0.7449976733364356,
               "detection": {
                 "n": 307,
                 "positives": 10,
-                "precision": 0.375,
+                "precision": 0.391304347826087,
                 "recall": 0.9,
-                "roc_auc": 0.9331649831649831,
-                "pr_auc": 0.6322300281177259
+                "roc_auc": 0.9313131313131313,
+                "pr_auc": 0.5844136288307384
               },
               "detection_red": {
                 "n": 307,
                 "positives": 10,
-                "precision": 0.4375,
-                "recall": 0.7,
-                "roc_auc": 0.9331649831649831,
-                "pr_auc": 0.6322300281177259
+                "precision": 0.47058823529411764,
+                "recall": 0.8,
+                "roc_auc": 0.9313131313131313,
+                "pr_auc": 0.5844136288307384
               },
               "lead_days_median": 1.0,
               "date_error_days_median": 1.0,
-              "shortfall_error_rel_median": 0.26248724716750244
+              "shortfall_error_rel_median": 0.12498311744443384
             },
             "14": {
-              "rel_mae_median": 0.10351365790252107,
-              "rel_mae_mean": 0.19406195537722218,
-              "interval_coverage": 0.7333643555141927,
+              "rel_mae_median": 0.10141845107489164,
+              "rel_mae_mean": 0.1926264561310655,
+              "interval_coverage": 0.7429036761284318,
               "detection": {
                 "n": 307,
                 "positives": 12,
                 "precision": 0.36666666666666664,
                 "recall": 0.9166666666666666,
-                "roc_auc": 0.9406779661016949,
-                "pr_auc": 0.6453561980434314
+                "roc_auc": 0.9388418079096045,
+                "pr_auc": 0.6176323745959237
               },
               "detection_red": {
                 "n": 307,
                 "positives": 12,
-                "precision": 0.5294117647058824,
-                "recall": 0.75,
-                "roc_auc": 0.9406779661016949,
-                "pr_auc": 0.6453561980434314
+                "precision": 0.5555555555555556,
+                "recall": 0.8333333333333334,
+                "roc_auc": 0.9388418079096045,
+                "pr_auc": 0.6176323745959237
               },
               "lead_days_median": 2.0,
               "date_error_days_median": 1.0,
-              "shortfall_error_rel_median": 0.46670297728968413
+              "shortfall_error_rel_median": 0.2248209185641888
             },
             "30": {
-              "rel_mae_median": 0.17898823478104414,
-              "rel_mae_mean": 0.3091627858106777,
-              "interval_coverage": 0.6690553745928339,
+              "rel_mae_median": 0.17561913963461667,
+              "rel_mae_mean": 0.30144117088031647,
+              "interval_coverage": 0.715526601520087,
               "detection": {
                 "n": 307,
                 "positives": 23,
-                "precision": 0.4418604651162791,
+                "precision": 0.3958333333333333,
                 "recall": 0.8260869565217391,
-                "roc_auc": 0.9295774647887323,
-                "pr_auc": 0.559944646563276
+                "roc_auc": 0.9220759338640541,
+                "pr_auc": 0.5762710453162536
               },
               "detection_red": {
                 "n": 307,
                 "positives": 23,
-                "precision": 0.48,
-                "recall": 0.5217391304347826,
-                "roc_auc": 0.9295774647887323,
-                "pr_auc": 0.559944646563276
+                "precision": 0.52,
+                "recall": 0.5652173913043478,
+                "roc_auc": 0.9220759338640541,
+                "pr_auc": 0.5762710453162536
               },
               "lead_days_median": 8.0,
               "date_error_days_median": 1.5,
-              "shortfall_error_rel_median": 0.3467814359630077
+              "shortfall_error_rel_median": 0.26016560603756267
             }
           }
         }
@@ -1462,8 +1462,8 @@
         "actual_share": 0.42552642731694074
       },
       "platform_in": {
-        "wape": 0.12138310828102378,
-        "bias": -0.08841367001695095,
+        "wape": 0.11593537969008716,
+        "bias": -0.01252955294519987,
         "actual_share": 0.0199495118975741
       },
       "other_in": {
@@ -1472,8 +1472,8 @@
         "actual_share": 0.0004524516265029285
       },
       "salary": {
-        "wape": 0.15812255298773734,
-        "bias": -0.14043033782265116,
+        "wape": 0.10832569088242672,
+        "bias": -0.08336031516382514,
         "actual_share": 0.06126840133391318
       },
       "tax_enp": {
@@ -1482,23 +1482,23 @@
         "actual_share": 0.05436975076859149
       },
       "rent": {
-        "wape": 0.2142483257156205,
-        "bias": 0.15387514854600562,
+        "wape": 0.21324997973709744,
+        "bias": 0.155730086658281,
         "actual_share": 0.01653359996704511
       },
       "debt": {
-        "wape": 1.781424771074653,
-        "bias": 0.740492899301122,
+        "wape": 1.780638278107573,
+        "bias": 0.7418198529825538,
         "actual_share": 0.004147334754064198
       },
       "suppliers": {
-        "wape": 0.3115183393842675,
-        "bias": -0.02775046549633375,
+        "wape": 0.31144163417675474,
+        "bias": -0.027152656431648513,
         "actual_share": 0.30520931758053427
       },
       "other_out": {
-        "wape": 0.2106351478873605,
-        "bias": -0.07904951155458742,
+        "wape": 0.20922426072997533,
+        "bias": 0.007908471585013857,
         "actual_share": 0.015322269148026922
       }
     },
@@ -1543,131 +1543,131 @@
     "reliability_30d": [
       {
         "bin": 0,
-        "predicted": 0.008234880450070323,
-        "observed": 0.006329113924050633,
-        "n": 474
+        "predicted": 0.008714185883997205,
+        "observed": 0.008385744234800839,
+        "n": 477
       },
       {
         "bin": 1,
-        "predicted": 0.14442307692307693,
-        "observed": 0.11538461538461539,
-        "n": 52
+        "predicted": 0.14391304347826087,
+        "observed": 0.08695652173913043,
+        "n": 46
       },
       {
         "bin": 2,
-        "predicted": 0.23773333333333332,
-        "observed": 0.16,
-        "n": 25
+        "predicted": 0.23755555555555558,
+        "observed": 0.13333333333333333,
+        "n": 30
       },
       {
         "bin": 3,
-        "predicted": 0.34941176470588237,
-        "observed": 0.11764705882352941,
-        "n": 34
+        "predicted": 0.34456790123456793,
+        "observed": 0.14814814814814814,
+        "n": 27
       },
       {
         "bin": 4,
-        "predicted": 0.4501075268817204,
-        "observed": 0.2903225806451613,
-        "n": 31
+        "predicted": 0.44885714285714284,
+        "observed": 0.2571428571428571,
+        "n": 35
       },
       {
         "bin": 5,
-        "predicted": 0.5354385964912282,
-        "observed": 0.2631578947368421,
-        "n": 19
+        "predicted": 0.5406349206349207,
+        "observed": 0.3333333333333333,
+        "n": 21
       },
       {
         "bin": 6,
-        "predicted": 0.6473913043478261,
-        "observed": 0.30434782608695654,
-        "n": 23
+        "predicted": 0.6404166666666666,
+        "observed": 0.3125,
+        "n": 16
       },
       {
         "bin": 7,
-        "predicted": 0.7530434782608696,
+        "predicted": 0.7542307692307693,
+        "observed": 0.46153846153846156,
+        "n": 26
+      },
+      {
+        "bin": 8,
+        "predicted": 0.8515942028985508,
         "observed": 0.4782608695652174,
         "n": 23
       },
       {
-        "bin": 8,
-        "predicted": 0.8439682539682541,
-        "observed": 0.6190476190476191,
-        "n": 21
-      },
-      {
         "bin": 9,
-        "predicted": 0.9800529100529101,
-        "observed": 0.8888888888888888,
-        "n": 63
+        "predicted": 0.9840104166666667,
+        "observed": 0.90625,
+        "n": 64
       }
     ],
     "reliability_30d_calibrated": [
       {
         "bin": 0,
-        "predicted": 0.01960502127904042,
+        "predicted": 0.020044931063935872,
         "observed": 0.01,
         "n": 500
       },
       {
         "bin": 1,
-        "predicted": 0.14689746346119897,
-        "observed": 0.16304347826086957,
-        "n": 92
+        "predicted": 0.1472851360254982,
+        "observed": 0.16494845360824742,
+        "n": 97
       },
       {
         "bin": 2,
-        "predicted": 0.23761089693725648,
-        "observed": 0.2807017543859649,
-        "n": 57
+        "predicted": 0.23896712888882243,
+        "observed": 0.2909090909090909,
+        "n": 55
       },
       {
         "bin": 3,
-        "predicted": 0.3442573386341893,
-        "observed": 0.4473684210526316,
-        "n": 38
+        "predicted": 0.3484778582078321,
+        "observed": 0.4411764705882353,
+        "n": 34
       },
       {
         "bin": 4,
-        "predicted": 0.4464467515791582,
-        "observed": 0.5882352941176471,
+        "predicted": 0.44081918703628875,
+        "observed": 0.5294117647058824,
         "n": 17
       },
       {
         "bin": 5,
-        "predicted": 0.5465687302107909,
+        "predicted": 0.54111996518389,
         "observed": 0.8,
         "n": 10
       },
       {
         "bin": 6,
-        "predicted": 0.6426802970460095,
+        "predicted": 0.6535505199696173,
         "observed": 0.75,
-        "n": 8
+        "n": 4
       },
       {
         "bin": 7,
-        "predicted": 0.7449657393313968,
+        "predicted": 0.7462771141750837,
         "observed": 1.0,
-        "n": 7
+        "n": 8
       },
       {
         "bin": 8,
-        "predicted": 0.8332873094964971,
-        "observed": 0.6666666666666666,
-        "n": 3
+        "predicted": 0.8321347402800665,
+        "observed": 0.8571428571428571,
+        "n": 7
       },
       {
         "bin": 9,
-        "predicted": 0.9253499704230784,
+        "predicted": 0.9149571198219947,
         "observed": 0.9696969696969697,
         "n": 33
       }
     ]
   },
   "calibration": {
-    "a": 0.5424676418083589,
-    "b": -1.2304148207996017,
+    "a": 0.5272526958361003,
+    "b": -1.2669379836387895,
     "fitted_on": "tune cutoffs, structural, horizon 30"
   }
 }

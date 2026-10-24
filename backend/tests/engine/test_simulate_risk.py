@@ -128,6 +128,16 @@ def test_overdraft_limit_lowers_the_threshold():
     assert assess_risk(sim, AS_OF, Settings(threshold=50_000.0), [ev], calibrated=False).shortfall_p50 == 130_000.0
 
 
+def test_mandatory_payments_on_the_same_day_share_the_money_salary_first():
+    # 28-го зарплата 150 тыс. и налог 80 тыс., на счёте 200 тыс.: на зарплату хватает, на налог после неё — нет
+    salary = event(10, 150_000.0, eid="sal")
+    tax = PlannedEvent(id="tax", direction=-1, amount=80_000.0, date=AS_OF + timedelta(days=10), category="tax_enp",
+                       title="Налоги (ЕНП)", mandatory=True)
+    sim = run(200_000.0, [tax, salary])
+    coverage = {c.event_id: c.covered_probability for c in assess_risk(sim, AS_OF, Settings(), [tax, salary]).coverage}
+    assert coverage == {"sal": 1.0, "tax": 0.0}
+
+
 def test_incoming_money_on_the_payment_day_counts_for_coverage():
     pay, income = event(10, 150_000.0), event(10, 100_000.0, direction=1, mandatory=False)
     sim = run(100_000.0, [pay, income])

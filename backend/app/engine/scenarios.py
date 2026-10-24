@@ -29,7 +29,9 @@ from app.schemas import (
 
 CLIENT_CATEGORIES = ("client_payment", "client_prepayment")
 INVOICE_SOURCES = {"invoice", "csv", "1c", "demo_accounting", "contract_detected"}
-INVOICE_LEVEL_CV = 0.2                    # общий риск оплат по счетам (настроен по покрытию интервалов на tune)
+# общий риск оплат по счетам. Подбор на tune (компании с документами клиентов): 0,2 → покрытие P10–P90 75%,
+# precision 30%; 0,3 → 80% и 22%; 0,4 → 85% и 18%. Оставили 0,2: покрытие как у основной модели, а тревог втрое меньше
+INVOICE_LEVEL_CV = 0.2
 CATEGORY_NAMES = {"rent": "аренда", "suppliers": "закупки", "salary": "зарплата", "utilities": "коммунальные услуги",
                   "services": "услуги", "marketing": "реклама", "contractors": "подрядчики"}
 

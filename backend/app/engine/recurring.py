@@ -65,6 +65,17 @@ def _share_of_recent(dates: pd.DatetimeIndex, period: str) -> float:
     return len({last - k for k in range(6)} & present) / 6
 
 
+def _regularity(dates: list[date], anchor: int, rule: str) -> float:
+    """Доля последних 6 месяцев с платежом, где платёж относится к месяцу своей НОМИНАЛЬНОЙ даты: расчёт за январь,
+    перенесённый через новогодние праздники на 30 декабря, — январский, а не второй декабрьский."""
+    present = set()
+    for d in dates:
+        own = [(y, m) for y, m in _neighbour_months(d) if shift(nominal_date(y, m, anchor), rule) == d]
+        present.add(pd.Period(year=own[-1][0], month=own[-1][1], freq="M") if own else pd.Period(d, "M"))
+    last = max(present)
+    return len({last - k for k in range(6)} & present) / 6
+
+
 def _neighbour_months(d: date) -> list[tuple[int, int]]:
     ts = pd.Period(d, "M")
     return [((ts + k).year, (ts + k).month) for k in (-1, 0, 1)]
@@ -163,6 +174,8 @@ def _detect_one(key: str, g: pd.DataFrame, as_of: date) -> RecurringStream | Non
         shift_rule=rule, amount=amount, amount_cv=cv, last_date=last, active=active,
         confidence=float(np.clip(share * (1 - cv), 0.0, 1.0)), mandatory=TAXONOMY[category].mandatory,
         counterparty=counterparty, explain=explain, seasonal_amounts=seasonal, typical_delay_days=delay,
+        regularity=(min(1.0, share * 3) if period == "quarterly"              # у квартальных доля — по месяцам
+                    else _regularity(dates[-13:], anchor, rule) if period == "monthly" else share),
     )
 
 
@@ -249,7 +262,8 @@ def expand_streams(streams: list[RecurringStream], as_of: date, horizon: int = 3
                 amount = s.seasonal_amounts[d.month]
             events.append(PlannedEvent(
                 id=f"rec:{s.key}:{d.isoformat()}", direction=s.direction, amount=round(amount, 2), date=d,
-                p_within_horizon=min(0.99, 0.5 + 0.5 * s.confidence), amount_cv=s.amount_cv,
+                # шанс платежа — от регулярности; разброс суммы уже в amount_cv, второй раз его не учитываем
+                p_within_horizon=min(0.99, 0.5 + 0.5 * s.regularity), amount_cv=s.amount_cv,
                 category=s.category, title=_title(s), source="recurring", mandatory=s.mandatory,
                 counterparty=s.counterparty, explain=explain,
                 counterparty_inn=None if s.category == "salary" else s.key.split(":", 1)[1],

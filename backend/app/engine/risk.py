@@ -17,6 +17,7 @@ from app.schemas import MandatoryCoverage
 POSSIBLE_PROB = 0.2          # возможная дата разрыва — первый день с prob_below ≥ 0,2
 LIKELY_PROB = 0.5            # вероятная — с prob_below ≥ 0,5
 RED_IF_WITHIN_DAYS = 7
+PAY_ORDER = {"salary": 0, "tax_enp": 1}  # очерёдность обязательных платежей одного дня при проверке покрытия
 
 
 @dataclass
@@ -43,13 +44,19 @@ def _first_day(prob_below: np.ndarray, dates: list[date], p: float) -> date | No
 
 
 def mandatory_coverage(sim: Simulation, events: list[PlannedEvent], threshold: float) -> list[MandatoryCoverage]:
-    """Для каждого обязательного платежа: хватит ли денег в день платежа — `P(остаток до + приходы дня ≥ сумма)`."""
-    out = []
+    """Для каждого обязательного платежа: хватит ли денег в день платежа — `P(остаток до + приходы дня ≥ сумма)`.
+
+    Несколько обязательных платежей в один день делят одни и те же деньги: сначала зарплата, затем налоги, затем
+    остальные (крупные раньше), и каждый следующий проверяется на том, что осталось после предыдущих.
+    """
+    out, spent = [], {}
     for e in sorted((e for e in events if e.mandatory and e.direction == -1 and e.date in sim.dates),
-                    key=lambda e: e.date):
+                    key=lambda e: (e.date, PAY_ORDER.get(e.category, len(PAY_ORDER)), -e.amount)):
         i = sim.dates.index(e.date)
         before = sim.balance[:, i - 1] if i else np.full(sim.balance.shape[0], sim.start_balance)
-        covered = float(np.mean(before + sim.inflow[:, i] - e.amount >= threshold))
+        prior = spent.get(e.date, 0.0)
+        spent[e.date] = prior + e.amount
+        covered = float(np.mean(before + sim.inflow[:, i] - prior - e.amount >= threshold))
         out.append(MandatoryCoverage(event_id=e.id, title=e.title, date=e.date, amount=e.amount,
                                      covered_probability=round(covered, 2)))
     return out

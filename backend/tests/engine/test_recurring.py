@@ -65,6 +65,17 @@ def test_weekly_stream():
     assert dates == [date(2026, 6, 23), date(2026, 6, 30), date(2026, 7, 7), date(2026, 7, 14)]
 
 
+def test_regular_payment_with_varying_amount_still_happens_almost_surely():
+    # зарплата каждый месяц, но сумма гуляет на ±30%: разброс — в сумме, а не в шансе, что платёж будет
+    amounts = [200_000.0, 300_000.0, 150_000.0, 260_000.0]
+    days = monthly("2025-03", 13, 10, "prev", lambda p: amounts[p.month % 4], "Окончательный расчет по заработной плате",
+                   inn=None, name="Сотрудник")
+    as_of = date(2026, 3, 31)
+    stream = detect_streams(prepare(days, as_of), as_of)[0]
+    assert stream.regularity == 1.0 and stream.amount_cv > 0.2 and stream.confidence < 0.8
+    assert [e.p_within_horizon for e in expand_streams([stream], as_of, 30)] == [0.99]
+
+
 def test_incoming_operation_with_an_outflow_category_does_not_join_the_stream():
     from app.engine.recurring import stream_keys
 
