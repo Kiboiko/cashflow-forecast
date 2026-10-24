@@ -132,7 +132,8 @@ def test_category_summary(env):
 
 def test_categories_reference(env):
     cats = env.client.get("/api/v1/categories", headers=env.headers).json()
-    assert {"code": "rent", "title": "Аренда", "group": "обязательные", "mandatory": True} in cats
+    assert {"code": "rent", "title": "Аренда", "group": "обязательные", "mandatory": True, "direction": "out"} in cats
+    assert next(c for c in cats if c["code"] == "client_payment")["direction"] == "in"
     assert env.client.get("/api/v1/categories").status_code == 401
 
 
@@ -171,6 +172,17 @@ def test_patch_category_for_single_transaction(fresh_env):
     again = env.client.get(env.url("/transactions?q=ПАО «Связь»&limit=500"), headers=env.headers).json()["items"]
     categories = {t["id"]: t["category"] for t in again}
     assert categories[target["id"]] == "marketing" and categories[sibling["id"]] == "telecom_it"
+
+
+def test_patch_category_must_match_the_direction_of_the_operation(fresh_env):
+    env = fresh_env
+    for direction, wrong, right in (("out", "client_payment", "services"), ("in", "rent", "client_payment")):
+        page = env.client.get(env.url("/transactions?limit=500"), headers=env.headers).json()["items"]
+        tx = next(t for t in page if t["direction"] == direction)
+        denied = env.client.patch(env.url(f"/transactions/{tx['id']}"), headers=env.headers, json={"category": wrong})
+        assert denied.status_code == 422 and "категори" in denied.json()["detail"]
+        allowed = env.client.patch(env.url(f"/transactions/{tx['id']}"), headers=env.headers, json={"category": right})
+        assert allowed.status_code == 200 and allowed.json()["transaction"]["category"] == right
 
 
 def test_patch_category_validation_and_isolation(fresh_env):

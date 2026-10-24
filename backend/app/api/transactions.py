@@ -9,7 +9,6 @@ from sqlalchemy import select
 
 from app.db.models import Transaction
 from app.db.session import DbSession
-from app.engine.categorize.taxonomy import TAXONOMY
 from app.schemas import (
     CategoryInfo,
     CategoryPatch,
@@ -46,8 +45,9 @@ def patch_transaction(tid: int, body: CategoryPatch, request: Request, business:
     tx = db.scalar(select(Transaction).where(Transaction.id == tid, *service.visible_conditions(business)))
     if tx is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Операция не найдена")
-    if body.category not in TAXONOMY:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Неизвестная категория")
+    problem = service.category_mismatch(tx, body.category)
+    if problem:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, problem)
     return service.apply_category(db, business, request.app.state.forecast_service, tx, body)
 
 

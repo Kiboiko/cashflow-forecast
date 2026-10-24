@@ -402,6 +402,7 @@ class CategoryInfo(Schema):
     title: str
     group: str
     mandatory: bool
+    direction: Direction                            # категорию поступлений нельзя поставить списанию и наоборот
 
 
 class CategoryPatch(Schema):

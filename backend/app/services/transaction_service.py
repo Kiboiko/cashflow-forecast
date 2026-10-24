@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Business, CounterpartyRule, Transaction
-from app.engine.categorize.taxonomy import TAXONOMY
+from app.engine.categorize.taxonomy import TAXONOMY, category_direction
 from app.engine.normalize import norm_text
 from app.schemas import (
     CategoryInfo,
@@ -26,7 +26,19 @@ REVIEW_LOOKBACK_DAYS = 365          # как в движке: unknown_ops счи
 
 
 def categories() -> list[CategoryInfo]:
-    return [CategoryInfo(code=c.code, title=c.title, group=c.group, mandatory=c.mandatory) for c in TAXONOMY.values()]
+    return [CategoryInfo(code=c.code, title=c.title, group=c.group, mandatory=c.mandatory,
+                         direction="in" if category_direction(c.code) == 1 else "out") for c in TAXONOMY.values()]
+
+
+def category_mismatch(tx: Transaction, category: str) -> str | None:
+    """Почему категорию нельзя поставить операции (движок применяет правило только к своему направлению), иначе None."""
+    direction = category_direction(category)
+    if direction is None:
+        return "Неизвестная категория"
+    if direction != tx.direction:
+        return ("Для поступления нужна категория поступлений." if tx.direction > 0
+                else "Для списания нужна категория расходов.")
+    return None
 
 
 def visible_conditions(business: Business) -> list:

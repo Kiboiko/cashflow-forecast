@@ -655,6 +655,11 @@ export interface components {
             group: string;
             /** Mandatory */
             mandatory: boolean;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "in" | "out";
         };
         /**
          * CategoryPatch

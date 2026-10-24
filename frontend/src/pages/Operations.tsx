@@ -42,10 +42,10 @@ function ImportSummary({ result, onReview }: { result: ImportResult; onReview: (
 }
 
 /* ---------- окно «уточнить категорию» ---------- */
-function groupCategories(categories: CategoryInfo[]): Array<[string, CategoryInfo[]]> {
+function groupCategories(categories: CategoryInfo[], direction: TransactionOut['direction']): Array<[string, CategoryInfo[]]> {
   const groups = new Map<string, CategoryInfo[]>()
   for (const category of categories) {
-    if (category.code.startsWith('unknown')) continue
+    if (category.code.startsWith('unknown') || category.direction !== direction) continue   // поступлению — только категории поступлений
     groups.set(category.group, [...(groups.get(category.group) ?? []), category])
   }
   return [...groups.entries()]
@@ -56,7 +56,7 @@ function EditCategory({ bid, tx, categories, onClose, onDone }: { bid: string; t
   const [category, setCategory] = useState(tx.category && !tx.category.startsWith('unknown') ? tx.category : '')
   const who = tx.counterparty_name ?? tx.counterparty_inn
   const [remember, setRemember] = useState(Boolean(who))
-  const grouped = useMemo(() => groupCategories(categories), [categories])
+  const grouped = useMemo(() => groupCategories(categories, tx.direction), [categories, tx.direction])
   const error = patch.error instanceof ApiError ? patch.error.message : null
 
   const save = () =>
