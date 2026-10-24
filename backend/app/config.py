@@ -30,6 +30,7 @@ class AppSettings(BaseSettings):
     fixture_path: Path = BACKEND_DIR / "tests" / "fixtures" / "forecast_example.json"
     telegram_bot_token: str = ""                                # пусто — сообщения только пишем в журнал без текста
     cbr_key_rate_fallback: float = 0.14                         # запасная ключевая ставка (на 23.10.2026), если ЦБ недоступен
+    jury_as_of: str = ""                                        # режим жюри: дата прогноза; пусто — как у персон, last — конец выписки
 
     @property
     def registry_mock_path(self) -> Path:

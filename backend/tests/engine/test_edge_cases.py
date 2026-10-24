@@ -104,3 +104,18 @@ def test_every_kind_of_company_in_the_dataset_gets_a_forecast():
         sane(result)
         seen_inactive += result.data_quality.inactive
     assert seen_inactive >= len(closed) - 1                                  # закрытые счета не прогнозируем
+
+
+def test_direction_synonyms_from_other_exports_and_unknown_direction_fails():
+    import pandas as pd
+    import pytest
+
+    from app.engine.normalize import normalize
+
+    raw = pd.DataFrame({"company_id": "X", "operation_id": ["1", "2", "3", "4"],
+                        "operation_date": ["2026-01-05"] * 4, "amount": [1.0, 2.0, 3.0, 4.0],
+                        "direction": ["Поступление", " приход ", "OUT", "Списание"], "counterparty_inn": None,
+                        "counterparty_name": None, "payment_purpose": "x", "balance_eod": 10.0})
+    assert normalize(raw)["direction"].tolist() == [1, 1, -1, -1]
+    with pytest.raises(ValueError, match="Неизвестное направление"):
+        normalize(raw.assign(direction=["Перевод"] * 4))

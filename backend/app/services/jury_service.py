@@ -87,13 +87,20 @@ def _has_data(db: Session, company_id: str) -> bool:
         db.scalar(select(func.count()).select_from(Transaction).where(Transaction.business_id == company_id)))
 
 
-def _load(db: Session, service: ForecastService, persona: Persona, raw: Path) -> None:
+def wanted_as_of(setting: str, last: date) -> date:
+    """Дата прогноза в режиме жюри: `last` — последняя дата выписки (контрольный датасет), ISO-дата — она, пусто — как у персон."""
+    if setting.strip().lower() == "last":
+        return last
+    return date.fromisoformat(setting.strip() or DEMO_AS_OF)
+
+
+def _load(db: Session, service: ForecastService, persona: Persona, raw: Path, setting: str = "") -> None:
     content = (raw / "statements" / f"{persona.company_id}.csv").read_bytes()
     try:
         frame = import_service.parse_dataset_csv(content)
     except import_service.StatementError as exc:
         raise JuryError(f"Выписку этой компании не удалось прочитать: {exc}", 422) from exc
-    as_of = choose_as_of(frame["date"].min(), frame["date"].max(), date.fromisoformat(DEMO_AS_OF))
+    as_of = choose_as_of(frame["date"].min(), frame["date"].max(), wanted_as_of(setting, frame["date"].max()))
     if as_of is None:
         raise JuryError(f"У этой компании слишком короткая история: нужно хотя бы {MIN_HISTORY_DAYS} дней операций.", 422)
     stored = db.get(BusinessContext, persona.company_id)
@@ -119,7 +126,7 @@ def open_company(db: Session, service: ForecastService, settings: AppSettings, c
         with _seeding:
             db.expire_all()                                        # пока ждали очередь, другой запрос мог загрузить компанию
             if not _has_data(db, company.company_id):
-                _load(db, service, jury_persona(company), raw)
+                _load(db, service, jury_persona(company), raw, settings.jury_as_of)
     business = db.get(Business, company.company_id)
     log.info("jury open", extra={"fields": {"business": company.company_id}})
     return db.get(User, business.owner_user_id)

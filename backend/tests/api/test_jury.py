@@ -210,3 +210,10 @@ def test_jury_mode_exists_only_in_demo_mode(raw):
     with TestClient(application) as client:
         assert client.get("/api/v1/auth/jury-companies").status_code == 404
         assert client.post("/api/v1/auth/jury-login", json={"company_id": "C201"}).status_code == 404
+
+
+def test_jury_forecast_date_can_follow_the_end_of_the_statement():
+    last = date(2026, 9, 30)
+    assert jury_service.wanted_as_of("", last) == date(2026, 7, 31)              # как у персон
+    assert jury_service.wanted_as_of("last", last) == last                        # контрольный датасет: от конца выписки
+    assert jury_service.wanted_as_of("2026-08-15", last) == date(2026, 8, 15)

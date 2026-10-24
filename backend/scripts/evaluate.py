@@ -138,6 +138,39 @@ def complete_companies(ops: pd.DataFrame, table: pd.DataFrame | None) -> pd.Data
     return pd.DataFrame(rows)
 
 
+DATASET_COLUMNS = ["company_id", "operation_id", "operation_date", "amount", "direction", "counterparty_inn",
+                   "counterparty_name", "payment_purpose", "balance_eod"]
+
+
+def write_service_dataset(raw: pd.DataFrame, table: pd.DataFrame | None, target: Path) -> Path:
+    """Датасет в раскладке сервиса (режим жюри открывает любую компанию): <target>/raw/{companies.csv, all_operations.csv,
+    statements/<компания>.csv}. Справочник дополняется датами и числом операций, если их нет."""
+    raw_dir = target / "raw"
+    (raw_dir / "statements").mkdir(parents=True, exist_ok=True)
+    ops = raw.copy()
+    ops["company_id"] = ops["company_id"].astype(str)
+    for column in DATASET_COLUMNS:
+        if column not in ops:
+            ops[column] = None
+    if ops["operation_id"].isna().any():
+        ops["operation_id"] = ops["company_id"] + "-" + ops.groupby("company_id").cumcount().add(1).astype(str).str.zfill(6)
+    ops["operation_date"] = pd.to_datetime(ops["operation_date"]).dt.strftime("%Y-%m-%d")
+    ops = ops[DATASET_COLUMNS].sort_values(["company_id", "operation_date", "operation_id"], kind="stable")
+    ops.to_csv(raw_dir / "all_operations.csv", sep=";", index=False, encoding="utf-8-sig")
+    for cid, g in ops.groupby("company_id"):
+        g.to_csv(raw_dir / "statements" / f"{cid}.csv", sep=";", index=False, encoding="utf-8-sig")
+    known = table.set_index("company_id") if table is not None and "company_id" in table else pd.DataFrame()
+    rows = []
+    for cid, g in ops.groupby("company_id"):
+        info = known.loc[cid] if cid in known.index else pd.Series(dtype=object)
+        rows.append({"company_id": cid, "company_name": info.get("company_name", f"Компания {cid}"),
+                     "company_inn": info.get("company_inn", ""), "legal_form": info.get("legal_form", ""),
+                     "industry": info.get("industry", "Не указана"), "first_operation_date": g["operation_date"].min(),
+                     "last_operation_date": g["operation_date"].max(), "operations_count": len(g)})
+    pd.DataFrame(rows).to_csv(raw_dir / "companies.csv", sep=";", index=False, encoding="utf-8-sig")
+    return raw_dir
+
+
 # ---------- 2. отсечки ----------
 def month_end_cutoffs(ops: pd.DataFrame, max_cutoffs: int) -> list[date]:
     """Концы месяцев, где есть ≥90 дней истории и 30 дней факта после; если таких нет — одна отсечка за 30 дней до конца."""
@@ -362,6 +395,8 @@ def main() -> None:
     ap.add_argument("--external", action="store_true", help="добавить абляцию «+внешние данные» (в 2 раза дольше)")
     ap.add_argument("--jobs", type=int, default=-1)
     ap.add_argument("--publish", action="store_true", help="положить JSON в reports/ для страницы «Как мы считаем»")
+    ap.add_argument("--prepare-service", type=Path, default=None,
+                    help="разложить датасет для сервиса в <папка>/raw (режим жюри: открыть любую компанию в интерфейсе)")
     args = ap.parse_args()
 
     name = args.data.stem if args.data.suffix else args.data.name
@@ -376,6 +411,9 @@ def main() -> None:
         if missing:
             raise SystemExit(f"В выписке нет обязательных столбцов: {missing}")
         log(f"  прочитано {len(raw)} строк ({source}); столбцы: {', '.join(raw.columns)}")
+        if args.prepare_service:
+            target = write_service_dataset(raw, table, args.prepare_service.resolve())
+            log(f"  датасет для интерфейса разложен в {target} (DATA_DIR={args.prepare_service})")
         ops_all = normalize(raw)
         companies = complete_companies(ops_all, table)
         ids = sorted(ops_all["company_id"].unique())

@@ -92,7 +92,9 @@ def trace_forecast(model: Model, result: ForecastResult) -> list[str]:
     out.append(f"Шаг 10. Риск: доля сценариев с разрывом {raw:.1%} → откалиброванный шанс {r.gap_probability:.0%} "
                f"(порог жёлтого {s.risk_yellow:.0%}, красного {s.risk_red:.0%}) → уровень «{r.level}». "
                + (f"Возможная дата {dm(when)}, нехватка ≈{rub(r.shortfall_p50)} (в плохом сценарии {rub(r.shortfall_p90)}), "
-                  f"подушка {rub(r.safe_buffer)}." if when else "Разрыва в горизонте не ожидается.") if raw is not None else
+                  f"подушка {rub(r.safe_buffer)}." if when else "Разрыва в горизонте не ожидается." if r.level == "green"
+                  else f"Явной даты нет: ни в один день шанс нехватки не доходит до 20%; в плохом сценарии не хватит до "
+                       f"{rub(r.shortfall_p90)}.") if raw is not None else
                f"Шаг 10. Риск: шанс {r.gap_probability:.0%}, уровень «{r.level}».")
     cover = [f"{c.title} {dm(c.date)} — {c.covered_probability:.0%}" for c in r.mandatory_coverage[:MAX_LIST]]
     if cover:
