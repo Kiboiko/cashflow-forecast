@@ -16,6 +16,7 @@ _ACCOUNT = re.compile(r"(?<!\d)\d{20}(?!\d)")                   # номер с�
 _INN = re.compile(r"(?<!\d)(?:\d{10}|\d{12})(?!\d)")            # ИНН юрлица и ИП
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _BEARER = re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+")
+_BOT_TOKEN = re.compile(r"(?i)\bbot\d{5,}:[\w-]{10,}")          # токен бота Telegram стоит прямо в адресе запроса
 _QUERY = re.compile(r"\?\S*")
 
 MASK = "***"
@@ -25,8 +26,9 @@ _OWN_HANDLER_FLAG = "_kassa_json_handler"
 
 
 def mask(text: str) -> str:
-    """Скрывает номера счетов, ИНН, email и токены."""
+    """Скрывает номера счетов, ИНН, email и токены (входа и бота Telegram)."""
     text = _BEARER.sub(f"Bearer {MASK}", text)
+    text = _BOT_TOKEN.sub(f"bot{MASK}", text)
     text = _ACCOUNT.sub(MASK, text)
     text = _INN.sub(MASK, text)
     return _EMAIL.sub(MASK, text)
@@ -87,3 +89,5 @@ def setup_logging(level: str = "INFO") -> None:
     access.handlers.clear()
     access.propagate = False
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)       # SQL с параметрами не пишем
+    for noisy in ("httpx", "httpcore"):                                    # httpx пишет адрес запроса целиком, а в нём токен бота
+        logging.getLogger(noisy).setLevel(logging.WARNING)

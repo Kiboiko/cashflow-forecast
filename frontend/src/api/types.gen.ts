@@ -95,6 +95,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/jury-companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Jury Companies
+         * @description Режим жюри: компании датасета, которые можно открыть. Нет датасета на сервере — пустой список.
+         */
+        get: operations["jury_companies_api_v1_auth_jury_companies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/jury-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Jury Login
+         * @description Вход в любую компанию датасета как в отдельного предпринимателя; первый вход загружает её выписку (до минуты).
+         */
+        post: operations["jury_login_api_v1_auth_jury_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -144,6 +184,26 @@ export interface paths {
         head?: never;
         /** Patch Settings */
         patch: operations["patch_settings_api_v1_businesses__bid__settings_patch"];
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/telegram/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Telegram Test
+         * @description Присылает владельцу тестовое сообщение: так видно, что бот подключён, а id чата указан верно.
+         */
+        post: operations["telegram_test_api_v1_businesses__bid__telegram_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/businesses/{bid}/forecast": {
@@ -511,6 +571,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reference/key-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Key Rate */
+        get: operations["key_rate_api_v1_reference_key_rate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{bid}/counterparty-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Counterparty Checks
+         * @description Статусы контрагентов по ИНН: в ответе только те, у кого статус не «действует». Сейчас — демо-заглушка.
+         */
+        get: operations["counterparty_checks_api_v1_businesses__bid__counterparty_checks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -725,6 +822,30 @@ export interface components {
             counterparty_inn?: string | null;
             /** Delay Days */
             delay_days: number;
+        };
+        /** CounterpartyCheck */
+        CounterpartyCheck: {
+            /** Inn */
+            inn: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "liquidating" | "bankrupt" | "unreliable";
+            /** Title */
+            title: string;
+            /** Note */
+            note?: string | null;
+        };
+        /** CounterpartyChecks */
+        CounterpartyChecks: {
+            /**
+             * Source
+             * @constant
+             */
+            source: "demo";
+            /** Flagged */
+            flagged: components["schemas"]["CounterpartyCheck"][];
         };
         /** DailyPoint */
         DailyPoint: {
@@ -1079,6 +1200,34 @@ export interface components {
             kind: string;
             /** Text */
             text: string;
+        };
+        /** JuryCompany */
+        JuryCompany: {
+            /** Company Id */
+            company_id: string;
+            /** Name */
+            name: string;
+            /** Legal Form */
+            legal_form?: string | null;
+            /** Industry */
+            industry?: string | null;
+        };
+        /** JuryLoginRequest */
+        JuryLoginRequest: {
+            /** Company Id */
+            company_id: string;
+        };
+        /** KeyRateOut */
+        KeyRateOut: {
+            /** Rate */
+            rate: number;
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "cbr" | "fallback";
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1571,6 +1720,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** TelegramTestResult */
+        TelegramTestResult: {
+            /** Sent */
+            sent: boolean;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -1801,6 +1955,59 @@ export interface operations {
             };
         };
     };
+    jury_companies_api_v1_auth_jury_companies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JuryCompany"][];
+                };
+            };
+        };
+    };
+    jury_login_api_v1_auth_jury_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JuryLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -1874,6 +2081,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    telegram_test_api_v1_businesses__bid__telegram_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramTestResult"];
                 };
             };
             /** @description Validation Error */
@@ -2619,6 +2857,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacktestReport"];
+                };
+            };
+        };
+    };
+    key_rate_api_v1_reference_key_rate_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyRateOut"];
+                };
+            };
+        };
+    };
+    counterparty_checks_api_v1_businesses__bid__counterparty_checks_get: {
+        parameters: {
+            query?: {
+                inn?: string[] | null;
+            };
+            header?: never;
+            path: {
+                bid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterpartyChecks"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

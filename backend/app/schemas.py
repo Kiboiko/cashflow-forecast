@@ -571,6 +571,42 @@ class BacktestReport(Schema):
     report: dict
 
 
+# ---------- проверка связи с Telegram ----------
+class TelegramTestResult(Schema):
+    sent: bool
+
+
+# ---------- режим жюри: любая компания датасета как отдельный предприниматель ----------
+class JuryCompany(Schema):
+    company_id: str
+    name: str
+    legal_form: str | None = None
+    industry: str | None = None
+
+
+class JuryLoginRequest(Schema):
+    company_id: str = Field(max_length=16)
+
+
+# ---------- справочники: ключевая ставка ЦБ и проверка контрагентов ----------
+class KeyRateOut(Schema):
+    rate: float                                     # доля: 0.14 = 14% годовых
+    as_of: Date | None = None                       # дата записи ЦБ; у запасного значения её нет
+    source: Literal["cbr", "fallback"]
+
+
+class CounterpartyCheck(Schema):
+    inn: str
+    status: Literal["liquidating", "bankrupt", "unreliable"]
+    title: str                                      # «Идёт ликвидация»
+    note: str | None = None
+
+
+class CounterpartyChecks(Schema):
+    source: Literal["demo"]                         # пока заглушка; с настоящим реестром станет другим значением
+    flagged: list[CounterpartyCheck]                # только контрагенты, с которыми что-то не так
+
+
 # ---------- план-факт: расширение контракта (поля сверх §8, клиенты старого формата их просто не читают) ----------
 class PlanFactEventOut(PlanFactEvent):
     direction: Direction | None = None              # приход или платёж: от этого зависят слова «пришло / заплатили»

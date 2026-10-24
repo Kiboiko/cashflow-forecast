@@ -22,6 +22,8 @@ from sqlalchemy.exc import OperationalError
 from app.api import api_router, health
 from app.config import AppSettings, get_settings
 from app.db.session import init_db, make_engine, make_session_factory
+from app.integrations.cbr_rate import KeyRateClient
+from app.integrations.counterparty_registry import DemoRegistry
 from app.logging_setup import setup_logging
 from app.security import LoginRateLimiter
 from app.services.engine_adapter import NoDataError
@@ -65,6 +67,8 @@ def create_app(settings: AppSettings | None = None, engine: Engine | None = None
     app.state.session_factory = make_session_factory(engine)
     app.state.login_limiter = LoginRateLimiter(settings.login_attempts_per_minute)
     app.state.forecast_service = ForecastService(settings)
+    app.state.key_rate = KeyRateClient(settings.cbr_key_rate_fallback)
+    app.state.registry = DemoRegistry(settings.registry_mock_path)
 
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=False,
                        allow_methods=["*"], allow_headers=["*"])

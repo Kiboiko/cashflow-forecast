@@ -1,12 +1,74 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
-import { useDemoLogin, useLogin, usePersonas } from '../api/hooks'
+import { useDemoLogin, useJuryCompanies, useJuryLogin, useLogin, usePersonas } from '../api/hooks'
+import type { JuryCompany } from '../api/types'
 import { useAuth } from '../auth'
+import { SelectInput } from '../components/forms'
 import { IconRadar } from '../components/icons'
 import { Button, Card, ErrorBlock, Spinner } from '../components/ui'
 import { copy } from '../lib/copy'
+
+function byIndustry(companies: JuryCompany[]): Array<[string, JuryCompany[]]> {
+  const groups = new Map<string, JuryCompany[]>()
+  for (const company of companies) {
+    const key = company.industry ?? 'Другое'
+    groups.set(key, [...(groups.get(key) ?? []), company])
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b, 'ru'))
+}
+
+/** Режим жюри: любая компания датасета как отдельный предприниматель. Скрыт под заголовком; нет датасета — блока нет совсем. */
+function JuryPicker({ onToken }: { onToken: (token: string) => void }) {
+  const companies = useJuryCompanies()
+  const jury = useJuryLogin()
+  const [company, setCompany] = useState('')
+  const list = useMemo(() => companies.data ?? [], [companies.data])
+  const grouped = useMemo(() => byIndustry(list), [list])
+  if (list.length === 0) return null
+  const error = jury.error instanceof ApiError ? jury.error.message : jury.isError ? copy.common.error : null
+
+  return (
+    <details className="mt-6 rounded-2xl border border-line bg-surface p-4">
+      <summary className="cursor-pointer text-sm font-medium text-ink-2">{copy.login.juryTitle(list.length)}</summary>
+      <p className="mt-2 text-sm text-ink-2">{copy.login.juryHint}</p>
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="grid flex-1 gap-1 text-sm font-medium text-ink-2">
+          {copy.login.juryCompany}
+          <SelectInput value={company} onChange={(e) => setCompany(e.target.value)} disabled={jury.isPending}>
+            <option value="" disabled>
+              {copy.login.juryPick}
+            </option>
+            {grouped.map(([industry, items]) => (
+              <optgroup key={industry} label={industry}>
+                {items.map((item) => (
+                  <option key={item.company_id} value={item.company_id}>
+                    {item.company_id} · {item.name}
+                    {item.legal_form ? ` (${item.legal_form})` : ''}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </SelectInput>
+        </label>
+        <Button variant="primary" disabled={!company || jury.isPending} onClick={() => jury.mutate(company, { onSuccess: (r) => onToken(r.access_token) })}>
+          {jury.isPending ? copy.login.juryLoading : copy.login.juryOpen}
+        </Button>
+      </div>
+      {jury.isPending && (
+        <p role="status" className="mt-3 text-sm text-ink-2">
+          {copy.login.juryWait}
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-crit-ink">
+          {error}
+        </p>
+      )}
+    </details>
+  )
+}
 
 export default function LoginPage() {
   const { token, signIn } = useAuth()
@@ -79,6 +141,8 @@ export default function LoginPage() {
       ) : personas.isError && !(personas.error instanceof ApiError && personas.error.status === 404) ? (
         <ErrorBlock onRetry={() => personas.refetch()} />
       ) : null}
+
+      <JuryPicker onToken={done} />
 
       <Card className="mt-8">
         <h2 className="text-lg font-semibold text-ink">{personas.data?.length ? copy.login.orLogin : copy.login.title}</h2>

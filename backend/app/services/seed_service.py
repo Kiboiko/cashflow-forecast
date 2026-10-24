@@ -59,12 +59,23 @@ def _text(value: object, default: str | None = None) -> str | None:
     return text or default
 
 
-def ensure_persona(db: Session, persona: Persona, companies: pd.DataFrame | None = None) -> Business:
-    """Создаёт (или обновляет) пользователя-персону и его бизнес. Данные компании — из `companies.csv`, если он есть."""
+def first_text(row: dict, *keys: str, default: str | None = None) -> str | None:
+    """Первое непустое значение из столбцов-кандидатов: названия столбцов справочника в разных выгрузках чуть отличаются."""
+    for key in keys:
+        value = _text(row.get(key))
+        if value:
+            return value
+    return default
+
+
+def ensure_persona(db: Session, persona: Persona, companies: pd.DataFrame | None = None,
+                   password_hash: str | None = None) -> Business:
+    """Создаёт (или обновляет) пользователя-персону и его бизнес. Данные компании — из `companies.csv`, если он есть.
+    `password_hash` — готовый хэш пароля, когда создаётся много пользователей сразу (bcrypt считается долго)."""
     row = _company_row(companies, persona.company_id)
     user = db.scalar(select(User).where(User.email == persona.email))
     if user is None:
-        user = User(email=persona.email, password_hash=hash_password(DEMO_PASSWORD), display_name=persona.display_name)
+        user = User(email=persona.email, password_hash=password_hash or hash_password(DEMO_PASSWORD), display_name=persona.display_name)
         db.add(user)
     user.is_demo = True
     user.persona_note = persona.note
@@ -75,10 +86,10 @@ def ensure_persona(db: Session, persona: Persona, companies: pd.DataFrame | None
         business = Business(id=persona.company_id, owner_user_id=user.id, name=persona.fallback_name)
         db.add(business)
     business.owner_user_id = user.id
-    business.name = _text(row.get("company_name")) or _text(row.get("name")) or persona.fallback_name
-    business.inn = _text(row.get("company_inn"), business.inn)
-    business.legal_form = _text(row.get("legal_form"), persona.fallback_legal_form)
-    business.industry = _text(row.get("industry"), persona.fallback_industry)
+    business.name = first_text(row, "company_name", "name", "title", default=persona.fallback_name)
+    business.inn = first_text(row, "company_inn", "inn", default=business.inn)
+    business.legal_form = first_text(row, "legal_form", "form", default=persona.fallback_legal_form)
+    business.industry = first_text(row, "industry", "sector", default=persona.fallback_industry)
     db.commit()
     return business
 
@@ -87,15 +98,18 @@ def ensure_personas(db: Session, companies: pd.DataFrame | None = None) -> list[
     return [ensure_persona(db, persona, companies) for persona in PERSONAS]
 
 
-def wipe_business_data(db: Session, business_id: str) -> None:
-    """Стирает всё, что относится к бизнесу, кроме самого бизнеса и пользователя (для `--reset`)."""
+def wipe_business_data(db: Session, business_id: str, keep_context: bool = False) -> None:
+    """Стирает всё, что относится к бизнесу, кроме самого бизнеса и пользователя (для `--reset`).
+    Контекст «со стороны» оставляем по просьбе: его считают заранее, отдельно от выписки (режим жюри)."""
     db.execute(delete(ExpectedEvent).where(ExpectedEvent.business_id == business_id))
     for model in (Alert, ForecastSnapshot, DataGap, CounterpartyRule, Transaction, ImportBatch, Account):
         db.execute(delete(model).where(model.business_id == business_id))
-    db.execute(delete(BusinessContext).where(BusinessContext.business_id == business_id))
+    if not keep_context:
+        db.execute(delete(BusinessContext).where(BusinessContext.business_id == business_id))
     business = db.get(Business, business_id)
-    business.data_as_of, business.accounting_source = None, None
-    business.data_version += 1
+    if business is not None:
+        business.data_as_of, business.accounting_source = None, None
+        business.data_version += 1
     db.commit()
 
 
@@ -103,7 +117,7 @@ def seed_business(db: Session, service: ForecastService, persona: Persona, state
                   companies: pd.DataFrame | None = None, context: Context | None = None) -> SeedReport:
     """Один бизнес: выписка целиком → видимость до `as_of` → снимок прогноза и первые предупреждения."""
     business = ensure_persona(db, persona, companies)
-    wipe_business_data(db, business.id)
+    wipe_business_data(db, business.id, keep_context=context is None)      # новый контекст заменит старый, а без него — оставляем
     if context is not None:                                    # контекст нужен до первой сборки состояния движка
         save_context(db, business.id, as_of, context)
     frame = import_service.parse_dataset_csv(statement)

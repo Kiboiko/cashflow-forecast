@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError } from '../api/client'
-import { useBusiness, useUpdateSettings } from '../api/hooks'
+import { useBusiness, useKeyRate, useTelegramTest, useUpdateSettings } from '../api/hooks'
 import type { BusinessOut } from '../api/types'
 import { useCurrentBusiness } from '../auth'
 import { Check, Field, TextInput } from '../components/forms'
 import { IconPlus, IconX } from '../components/icons'
 import { Button, Card, ErrorBlock, SectionTitle, Segmented, Spinner } from '../components/ui'
 import { copy } from '../lib/copy'
+import { dmyShort } from '../lib/format'
+
+const PERCENT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
 
 interface AccountDraft {
   bank: string
@@ -18,6 +21,7 @@ const toNumber = (text: string): number => Number(text.replace(/\s/g, '').replac
 
 function SettingsForm({ business }: { business: BusinessOut }) {
   const update = useUpdateSettings(business.id)
+  const telegramTest = useTelegramTest(business.id)
   const s = business.settings
   const [horizon, setHorizon] = useState<30 | 60 | 90>(s.horizon_days)
   const [threshold, setThreshold] = useState(String(s.threshold))
@@ -29,6 +33,14 @@ function SettingsForm({ business }: { business: BusinessOut }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(false)
   const apiError = update.error instanceof ApiError ? update.error.message : null
+  const testing = update.isPending || telegramTest.isPending
+  const testError = !telegramTest.isError ? null : telegramTest.error instanceof ApiError ? telegramTest.error.message : 'Не удалось отправить. Попробуйте ещё раз.'
+
+  // Id чата сначала сохраняем: сервер шлёт тест на сохранённое значение, а не на то, что набрано в поле
+  const sendTest = () => {
+    telegramTest.reset()
+    update.mutate({ telegram_chat_id: telegram.trim() }, { onSuccess: () => telegramTest.mutate() })
+  }
 
   const save = () => {
     const found: Record<string, string> = {}
@@ -131,6 +143,22 @@ function SettingsForm({ business }: { business: BusinessOut }) {
         <Field label={copy.settings.telegram} hint={copy.settings.telegramHint}>
           {(id) => <TextInput id={id} value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="123456789" className="sm:max-w-xs" inputMode="numeric" />}
         </Field>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button size="sm" disabled={testing || !telegram.trim()} onClick={sendTest}>
+            {testing ? copy.settings.telegramTesting : copy.settings.telegramTest}
+          </Button>
+          <span className="text-sm text-ink-2">{copy.settings.telegramPrivacy}</span>
+        </div>
+        {telegramTest.isSuccess && (
+          <p role="status" className="mt-3 rounded-xl bg-good-soft px-3.5 py-2.5 text-sm text-good-ink">
+            {copy.settings.telegramSent}
+          </p>
+        )}
+        {testError && (
+          <p role="alert" className="mt-3 rounded-xl bg-crit-soft px-3.5 py-2.5 text-sm text-crit-ink">
+            {testError}
+          </p>
+        )}
       </Card>
 
       {apiError && (
@@ -150,6 +178,24 @@ function SettingsForm({ business }: { business: BusinessOut }) {
   )
 }
 
+/** Ключевая ставка ЦБ — ориентир для разговора про кредит. Не получилось с сайта ЦБ — честно говорим, что значение запасное. */
+function KeyRateCard() {
+  const rate = useKeyRate()
+  if (!rate.data) return null            // ошибка или загрузка: справочная карточка не должна мешать настройкам
+  const { rate: value, as_of: asOf, source } = rate.data
+  return (
+    <Card aria-labelledby="reference">
+      <SectionTitle id="reference">{copy.settings.reference}</SectionTitle>
+      <p className="text-ink">
+        {copy.settings.keyRate}: <span className="tnum font-semibold">{PERCENT.format(value * 100)}% годовых</span>
+        {source === 'cbr' && asOf && <span className="text-ink-2"> (на {dmyShort(asOf)})</span>}
+      </p>
+      {source === 'fallback' && <p className="mt-1 text-sm text-warn-ink">{copy.settings.keyRateFallback}</p>}
+      <p className="mt-2 text-sm text-ink-2">{copy.settings.keyRateHint}</p>
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   const { business } = useCurrentBusiness()
   const details = useBusiness(business?.id)
@@ -166,7 +212,14 @@ export default function SettingsPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold text-ink sm:text-2xl">{copy.settings.title}</h1>
       <p className="text-ink-2">{copy.settings.intro}</p>
-      {ready ? <SettingsForm key={business.id} business={ready} /> : <Spinner />}
+      {ready ? (
+        <>
+          <SettingsForm key={business.id} business={ready} />
+          <KeyRateCard />
+        </>
+      ) : (
+        <Spinner />
+      )}
     </div>
   )
 }
