@@ -28,3 +28,7 @@ Thumbs.db
 
 # Сгенерированное
 frontend/openapi.json
+
+# Локальная база демо (SQLite, без Docker)
+backend/kassa.db
+backend/kassa.db-*
