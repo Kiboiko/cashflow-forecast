@@ -116,7 +116,7 @@ def advance(db: Session, business: Business, service: ForecastService, days: int
     result = service.result(db, business, business_settings(business).horizon_days)
     _, matches = plan_fact(previous.payload, updated.ops, target, snapshot_id=previous.id)
     drafts = build_alerts(result, updated.ops, previous.payload.get("risk"), matches)
-    alerts = alert_service.store_alerts(db, business, drafts, alert_service.virtual_now(target))
+    alerts = service.publish_alerts(db, business, drafts, alert_service.virtual_now(target))
     risk_before = float(previous.payload.get("risk", {}).get("gap_probability", 0.0))
     new_ops = int((updated.ops["date"] > pd.Timestamp(current)).sum())
     log.info("advance", extra={"fields": {"business": business.id, "days": days, "new_operations": new_ops,

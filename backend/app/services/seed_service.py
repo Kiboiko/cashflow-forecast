@@ -118,6 +118,6 @@ def seed_business(db: Session, service: ForecastService, persona: Persona, state
     service.ensure_snapshot(db, business)
     state = service.state(db, business)
     drafts = build_alerts(result, state.ops, None, [])
-    stored = alert_service.store_alerts(db, business, drafts, alert_service.virtual_now(as_of))
+    stored = service.publish_alerts(db, business, drafts, alert_service.virtual_now(as_of))
     rows = db.query(Transaction).filter(Transaction.business_id == business.id).count()
     return SeedReport(persona, business, rows, result.risk.level, result.risk.gap_probability, result.risk.headline, len(stored))

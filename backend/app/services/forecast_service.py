@@ -16,7 +16,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Hashable
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,7 +26,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import AppSettings
-from app.db.models import Business, ExpectedEvent, ForecastSnapshot, User
+from app.db.models import Alert, Business, ExpectedEvent, ForecastSnapshot, User
+from app.engine.alerts import AlertDraft
 from app.engine.categorize import categorize
 from app.engine.categorize.taxonomy import TAXONOMY
 from app.engine.enrich import enrich
@@ -40,6 +41,7 @@ from app.engine.response import to_response, to_scenario_response
 from app.engine.scenarios import largest_client
 from app.engine.state import EngineState
 from app.engine.types import ForecastResult, PlannedEvent
+from app.integrations.telegram import TelegramClient
 from app.schemas import (
     DataQuality,
     EventCreate,
@@ -53,8 +55,10 @@ from app.schemas import (
     ScenarioRequest,
     ScenarioResponse,
 )
+from app.services import alert_service, notify
 from app.services.business_service import business_settings, engine_settings
 from app.services.engine_adapter import NoDataError, load_context, load_ops, load_user_rules
+from app.services.notify import Messenger
 
 _WEEKDAYS_DAT = ["понедельникам", "вторникам", "средам", "четвергам", "пятницам", "субботам", "воскресеньям"]
 _MAX_DATE = date(9999, 12, 31)
@@ -115,8 +119,11 @@ def _stream_title(key: str, category: str, counterparty: str | None) -> str:
 
 
 class ForecastService:
-    def __init__(self, settings: AppSettings) -> None:
+    def __init__(self, settings: AppSettings, messenger: Messenger | None = None) -> None:
         self.settings = settings
+        # Telegram подключается, только если задан токен бота; в тестах сюда подставляют подделку
+        self.messenger: Messenger | None = messenger or (TelegramClient(settings.telegram_bot_token)
+                                                         if settings.telegram_bot_token else None)
         self._states = _Lru(32)
         self._results = _Lru(128)
         self._scenarios = _Lru(64)
@@ -325,6 +332,13 @@ class ForecastService:
                 amount=round(s.amount, 2), last_date=s.last_date, active=s.active, confidence=round(s.confidence, 2),
                 mandatory=s.mandatory, counterparty=s.counterparty, explain=s.explain))
         return sorted(out, key=lambda r: (not r.active, r.direction == "in", -r.amount))
+
+    # ---------- предупреждения ----------
+    def publish_alerts(self, db: Session, business: Business, drafts: list[AlertDraft], now: datetime) -> list[Alert]:
+        """Сохраняет новые предупреждения (без повторов) и отправляет их владельцу, если подключён Telegram."""
+        stored = alert_service.store_alerts(db, business, drafts, now)
+        notify.deliver(db, business, stored, self.messenger)
+        return stored
 
     # ---------- прогрев ----------
     def warm_up(self, factory, limit: int = 5) -> int:

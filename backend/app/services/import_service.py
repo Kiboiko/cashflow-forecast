@@ -183,7 +183,7 @@ def _notify_after_import(db: Session, business: Business, service: ForecastServi
                          .order_by(ForecastSnapshot.as_of.desc(), ForecastSnapshot.id.desc()))
     result = service.result(db, business, business_settings(business).horizon_days)
     drafts = build_alerts(result, state.ops, previous.payload.get("risk") if previous else None, [])
-    alert_service.store_alerts(db, business, drafts, alert_service.virtual_now(business.data_as_of))
+    service.publish_alerts(db, business, drafts, alert_service.virtual_now(business.data_as_of))
     service.ensure_snapshot(db, business)
 
 
