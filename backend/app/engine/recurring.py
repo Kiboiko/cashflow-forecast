@@ -37,8 +37,9 @@ def stream_keys(ops: pd.DataFrame) -> pd.Series:
 
     Зарплата не делится по контрагентам: выплаты бывают реестром или переводами каждому сотруднику.
     """
-    key = (ops["category"] + ":" + ops["cp_key"].astype(str)).where(ops["category"].isin(CANDIDATES))
-    sal = ops["category"] == "salary"
+    wanted = ops["category"].map(CANDIDATES)                 # направление потока категории; приход «зарплатой» — не поток
+    key = (ops["category"] + ":" + ops["cp_key"].astype(str)).where(wanted == ops["direction"])
+    sal = (ops["category"] == "salary") & (ops["direction"] == CANDIDATES["salary"])
     if sal.any():
         key[sal] = "salary:" + ops.loc[sal, "salary_kind"].fillna("final")
     return key
@@ -152,7 +153,8 @@ def _detect_one(key: str, g: pd.DataFrame, as_of: date) -> RecurringStream | Non
         explain = f"Платёж по {_WEEKDAYS[anchor]} последние недели; сумма ≈ медиана 3 последних"
     else:
         explain = (f"{'Платите' if CANDIDATES[category] < 0 else 'Поступает'} {anchor}-го последние "
-                   f"{min(6, len(per_day))} мес.; сумма ≈ медиана 3 последних выплат")
+                   f"{min(6, len(per_day))} мес.{f' (по реестру; по факту — обычно на {delay} дн. позже)' if delay > 0 else ''}; "
+                   "сумма ≈ медиана 3 последних выплат")
 
     seasonal = _seasonal_amounts(per_day) if category in SEASONAL_MONTHLY and period == "monthly" else None
 

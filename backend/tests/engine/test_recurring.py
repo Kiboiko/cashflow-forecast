@@ -65,6 +65,16 @@ def test_weekly_stream():
     assert dates == [date(2026, 6, 23), date(2026, 6, 30), date(2026, 7, 7), date(2026, 7, 14)]
 
 
+def test_incoming_operation_with_an_outflow_category_does_not_join_the_stream():
+    from app.engine.recurring import stream_keys
+
+    ops = pd.DataFrame({"category": ["salary", "salary", "rent", "rent"], "direction": [-1, 1, -1, 1],
+                        "cp_key": ["a", "b", "0099", "0099"], "salary_kind": ["final", "final", None, None]})
+    keys = stream_keys(ops)
+    assert keys.notna().tolist() == [True, False, True, False]
+    assert keys.dropna().tolist() == ["salary:final", "rent:0099"]
+
+
 def test_delayed_salary_anchor_comes_from_register_date():
     def purpose(p, d):
         reg = shift(nominal_date(p.year, p.month, 10), "prev")
@@ -79,8 +89,9 @@ def test_delayed_salary_anchor_comes_from_register_date():
     assert stream.key == "salary:final" and stream.anchor_day == 10
     assert 12 <= stream.typical_delay_days <= 16
     # в прогнозе — плановая дата + обычная задержка: ждём выплату около 24 апреля, а не 10-го
-    dates = [e.date for e in expand_streams([stream], as_of, 30)]
-    assert len(dates) == 1 and date(2026, 4, 22) <= dates[0] <= date(2026, 4, 27)
+    events = expand_streams([stream], as_of, 30)
+    assert len(events) == 1 and date(2026, 4, 22) <= events[0].date <= date(2026, 4, 27)
+    assert "по факту — обычно на" in events[0].explain
 
 
 def test_mandatory_payment_not_made_yet_is_scheduled_as_overdue():
