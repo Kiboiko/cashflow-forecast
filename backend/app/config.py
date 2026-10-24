@@ -29,7 +29,12 @@ class AppSettings(BaseSettings):
     upload_dir: Path = Path(tempfile.gettempdir()) / "kassa-uploads"
     fixture_path: Path = BACKEND_DIR / "tests" / "fixtures" / "forecast_example.json"
     telegram_bot_token: str = ""                                # пусто — сообщения только пишем в журнал без текста
-    cbr_key_rate_fallback: float = 0.21                         # запасная ключевая ставка, если ЦБ недоступен
+    cbr_key_rate_fallback: float = 0.14                         # запасная ключевая ставка (на 23.10.2026), если ЦБ недоступен
+
+    @property
+    def registry_mock_path(self) -> Path:
+        """Файл с условными статусами контрагентов для демо (необязательный)."""
+        return self.data_dir / "demo" / "registry_mock.json"
 
     @property
     def cors_origin_list(self) -> list[str]:

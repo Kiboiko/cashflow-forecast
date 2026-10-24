@@ -9,6 +9,7 @@ import type {
   CategoryPatch,
   CategoryPatchResult,
   CategorySummary,
+  CounterpartyChecks,
   DemoPersona,
   Direction,
   EventCreate,
@@ -17,6 +18,8 @@ import type {
   EventsImportResult,
   ForecastResponse,
   ImportResult,
+  JuryCompany,
+  KeyRate,
   MeResponse,
   PlanFactResponse,
   ReceivablesResponse,
@@ -38,7 +41,10 @@ export const qk = {
   personas: ['personas'] as const,
   categories: ['categories'] as const,
   backtest: ['backtest'] as const,
+  keyRate: ['key-rate'] as const,
+  juryCompanies: ['jury-companies'] as const,
   business: (bid: string) => ['b', bid, 'business'] as const,
+  checks: (bid: string, inns: string[]) => ['b', bid, 'counterparty-checks', inns.join(',')] as const,
   forecast: (bid: string, horizon: number) => ['b', bid, 'forecast', horizon] as const,
   transactions: (bid: string, params: string) => ['b', bid, 'transactions', params] as const,
   summary: (bid: string, months: number) => ['b', bid, 'summary', months] as const,
@@ -86,6 +92,21 @@ export function useDemoLogin() {
   return useMutation({ mutationFn: (email: string) => api.post<TokenResponse>('/auth/demo-login', { email }) })
 }
 
+/** Режим жюри: компании датасета, которые можно открыть. Нет датасета или демо-режим выключен — пусто. */
+export function useJuryCompanies() {
+  return useQuery({
+    queryKey: qk.juryCompanies,
+    queryFn: () => api.get<JuryCompany[]>('/auth/jury-companies'),
+    retry: false,
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** Первый вход в компанию загружает её выписку и считает прогноз — это может занять до минуты. */
+export function useJuryLogin() {
+  return useMutation({ mutationFn: (companyId: string) => api.post<TokenResponse>('/auth/jury-login', { company_id: companyId }) })
+}
+
 /* ---------- бизнес и прогноз ---------- */
 export function useBusiness(bid: string | undefined) {
   return useQuery({
@@ -113,6 +134,29 @@ export function useUpdateSettings(bid: string) {
   return useMutation({
     mutationFn: (patch: SettingsPatch) => api.patch<BusinessOut>(`/businesses/${bid}/settings`, patch),
     onSuccess: () => refreshBusiness(client, bid),
+  })
+}
+
+/** Ключевая ставка Банка России: если сайт ЦБ недоступен, сервер отвечает запасным значением (`source: 'fallback'`). */
+export function useKeyRate() {
+  return useQuery({
+    queryKey: qk.keyRate,
+    queryFn: () => api.get<KeyRate>('/reference/key-rate'),
+    staleTime: 60 * 60_000,
+    retry: false,
+  })
+}
+
+const MAX_CHECKED_INNS = 200
+
+/** Демо-проверка контрагентов по ИНН: в ответе только те, с кем что-то не так (ликвидация, банкротство…). */
+export function useCounterpartyChecks(bid: string | undefined, inns: string[]) {
+  const unique = [...new Set(inns)].sort().slice(0, MAX_CHECKED_INNS)
+  return useQuery({
+    queryKey: qk.checks(bid ?? '', unique),
+    queryFn: () => api.get<CounterpartyChecks>(`/businesses/${bid}/counterparty-checks?${unique.map((inn) => `inn=${encodeURIComponent(inn)}`).join('&')}`),
+    enabled: !!bid && unique.length > 0,
+    staleTime: 5 * 60_000,
   })
 }
 

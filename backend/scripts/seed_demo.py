@@ -1,9 +1,10 @@
 """Демо-данные: персоны (§15.2), их выписки до 31.07.2026 («машина времени»), контекст «со стороны».
 
-Запуск из backend/:   uv run python scripts/seed_demo.py [--reset] [--raw ../data/raw] [--as-of 2026-07-31]
+Запуск из backend/:   uv run python scripts/seed_demo.py [--reset] [--jury] [--raw ../data/raw] [--as-of 2026-07-31]
 В Docker:             make seed   (docker compose exec api python scripts/seed_demo.py)
 Выписка каждой персоны загружается целиком, но видна до --as-of; остальные дни подгружает «машина времени».
 Без датасета создаются только персоны (прогноз можно смотреть в режиме FORECAST_MODE=fixture).
+--jury дополнительно готовит остальные компании датасета для режима жюри (экран входа → «Для жюри»).
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import func, select
 
 from app.config import get_settings
-from app.db.models import Business, Transaction
+from app.db.models import Business, BusinessContext, Transaction
 from app.db.session import init_db, make_engine, make_session_factory
 from app.engine.categorize import categorize
 from app.engine.context import build_context
@@ -29,9 +30,12 @@ from app.engine.enrich import enrich
 from app.engine.io import load_companies, load_operations
 from app.engine.normalize import normalize
 from app.logging_setup import setup_logging
+from app.security import hash_password
+from app.services import jury_service
+from app.services.engine_adapter import save_context
 from app.services.forecast_service import ForecastService
 from app.services.personas import DEMO_AS_OF, DEMO_PASSWORD, PERSONAS
-from app.services.seed_service import ensure_personas, seed_business
+from app.services.seed_service import ensure_persona, ensure_personas, seed_business
 
 
 def main() -> None:
@@ -40,6 +44,9 @@ def main() -> None:
     parser.add_argument("--as-of", type=date.fromisoformat, default=date.fromisoformat(DEMO_AS_OF),
                         help="до какой даты видна выписка (по умолчанию 2026-07-31)")
     parser.add_argument("--reset", action="store_true", help="загрузить данные персон заново, даже если они уже есть (старые стираются)")
+    parser.add_argument("--jury", action="store_true",
+                        help="режим жюри: заранее посчитать контекст «со стороны» для всех компаний датасета "
+                             "(выписки загрузятся при первом входе в компанию)")
     args = parser.parse_args()
 
     setup_logging("WARNING")
@@ -83,8 +90,39 @@ def main() -> None:
                 print(f"  {persona.display_name:8} {persona.company_id}: {report.rows} операций, "
                       f"риск {report.risk_level} ({report.gap_probability:.0%}), предупреждений {report.alerts}")
             print(f"Готово за {time.perf_counter() - started:.0f} с.")
+        if args.jury:
+            _prepare_jury(db, raw, companies, args.as_of)
         _ask_api_to_warm_up()
         _print_accounts(reports)
+
+
+def _prepare_jury(db, raw: Path, companies, as_of: date) -> None:
+    """Режим жюри: бизнес и контекст «со стороны» для каждой компании датасета, кроме основных персон. Выписки не грузим:
+    компания получит их при первом входе (jury_service), а сохранённый здесь контекст при этом остаётся.
+    Контекст зависит только от отрасли, поэтому считаем его один раз на отрасль, а не 147 раз по всей таблице операций."""
+    featured = {p.company_id for p in PERSONAS}
+    todo = [c for c in jury_service.list_companies(raw) if c.company_id not in featured
+            and db.get(BusinessContext, c.company_id) is None]
+    if not todo:
+        print("Режим жюри: контекст всех компаний уже готов.")
+        return
+    started = time.perf_counter()
+    print(f"Режим жюри: считаю контекст «со стороны» для {len(todo)} компаний (по одному разу на отрасль)…")
+    ops = _enriched_operations(raw)
+    present = set(ops["company_id"].unique())
+    by_industry: dict = {}
+    shared_hash = hash_password(DEMO_PASSWORD)
+    for company in todo:
+        business = ensure_persona(db, jury_service.jury_persona(company), companies, password_hash=shared_hash)
+        if company.company_id not in present:
+            continue
+        key = company.industry or company.company_id                  # без отрасли — отдельный расчёт
+        if key not in by_industry:
+            by_industry[key] = build_context(ops, companies, company.company_id, as_of)
+        save_context(db, business.id, as_of, by_industry[key])
+    del ops
+    gc.collect()
+    print(f"Готово за {time.perf_counter() - started:.0f} с: компании открываются на экране входа («Для жюри»).")
 
 
 def _already_seeded(db, company_id: str) -> bool:
@@ -93,10 +131,15 @@ def _already_seeded(db, company_id: str) -> bool:
         db.scalar(select(func.count()).select_from(Transaction).where(Transaction.business_id == company_id)) or 0) > 0
 
 
+def _enriched_operations(raw: Path):
+    """Операции всех компаний (222 тыс. строк) после categorize и enrich — как требует ENGINE_API §3."""
+    return enrich(categorize(normalize(load_operations(raw / "all_operations.csv"))))
+
+
 def _build_contexts(raw: Path, companies, as_of: date, company_ids: list[str]) -> dict:
-    """Контекст «со стороны» для каждой персоны. Операции всех компаний (222 тыс. строк) обрабатываются один раз и
-    освобождаются сразу после расчёта: в контейнере с 4 ГБ памяти держать несколько копий таблицы нельзя."""
-    ops = enrich(categorize(normalize(load_operations(raw / "all_operations.csv"))))   # ENGINE_API §3: после categorize и enrich
+    """Контекст «со стороны» для каждой персоны. Таблица операций обрабатывается один раз и освобождается сразу после
+    расчёта: в контейнере с 4 ГБ памяти держать несколько копий таблицы нельзя."""
+    ops = _enriched_operations(raw)
     present = set(ops["company_id"].unique())
     contexts = {cid: build_context(ops, companies, cid, as_of) for cid in company_ids if cid in present}
     del ops

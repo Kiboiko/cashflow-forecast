@@ -52,6 +52,10 @@ export type Alert = S['Alert']
 export type ReplayResult = S['ReplayResult']
 export type BacktestReport = S['BacktestReport']
 export type TelegramTestResult = S['TelegramTestResult']
+export type JuryCompany = S['JuryCompany']
+export type KeyRate = S['KeyRateOut']
+export type CounterpartyCheck = S['CounterpartyCheck']
+export type CounterpartyChecks = S['CounterpartyChecks']
 
 export type RiskLevel = Risk['level']
 export type Direction = 'in' | 'out'

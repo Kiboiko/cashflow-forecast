@@ -6,8 +6,18 @@ from sqlalchemy import select
 
 from app.db.models import Business, User
 from app.db.session import DbSession
-from app.schemas import DemoLoginRequest, DemoPersona, LoginRequest, TokenResponse, UserOut
+from app.schemas import (
+    DemoLoginRequest,
+    DemoPersona,
+    JuryCompany,
+    JuryLoginRequest,
+    LoginRequest,
+    TokenResponse,
+    UserOut,
+)
 from app.security import create_access_token, hash_password, login_rate_limit, verify_password
+from app.services import jury_service
+from app.services.personas import JURY_EMAIL_PREFIX
 
 router = APIRouter(tags=["auth"])
 
@@ -40,7 +50,8 @@ def _require_demo(request: Request) -> None:
 @router.get("/auth/demo-personas", response_model=list[DemoPersona], dependencies=[Depends(_require_demo)])
 def demo_personas(db: DbSession) -> list[DemoPersona]:
     """Карточки персон: показываем только тех, у кого есть бизнес, в порядке создания."""
-    users = db.scalars(select(User).where(User.is_demo.is_(True)).order_by(User.id)).all()
+    users = db.scalars(select(User).where(User.is_demo.is_(True), ~User.email.startswith(JURY_EMAIL_PREFIX))
+                       .order_by(User.id)).all()          # компании режима жюри карточками не показываем
     out = []
     for user in users:
         business = db.scalar(select(Business).where(Business.owner_user_id == user.id).order_by(Business.id))
@@ -59,4 +70,20 @@ def demo_login(body: DemoLoginRequest, request: Request, db: DbSession) -> Token
     user = db.scalar(select(User).where(User.email == body.email.strip().lower(), User.is_demo.is_(True)))
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Не найдено")
+    return _token(request, user)
+
+
+@router.get("/auth/jury-companies", response_model=list[JuryCompany], dependencies=[Depends(_require_demo)])
+def jury_companies(request: Request) -> list[JuryCompany]:
+    """Режим жюри: компании датасета, которые можно открыть. Нет датасета на сервере — пустой список."""
+    return jury_service.list_companies(jury_service.raw_dir(request.app.state.settings))
+
+
+@router.post("/auth/jury-login", response_model=TokenResponse, dependencies=[Depends(_require_demo)])
+def jury_login(body: JuryLoginRequest, request: Request, db: DbSession) -> TokenResponse:
+    """Вход в любую компанию датасета как в отдельного предпринимателя; первый вход загружает её выписку (до минуты)."""
+    try:
+        user = jury_service.open_company(db, request.app.state.forecast_service, request.app.state.settings, body.company_id)
+    except jury_service.JuryError as exc:
+        raise HTTPException(exc.status, str(exc)) from exc
     return _token(request, user)

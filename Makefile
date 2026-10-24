@@ -1,6 +1,6 @@
 # Команды проекта. Нужны: make, uv, Docker (для `make up`), Node 22 (для `make types` и `make lint`).
 # Рецепты написаны так, чтобы работать и в cmd.exe (Windows), и в sh: только `cd x && команда`.
-.PHONY: data up down seed seed-local test lint types backtest demo-reset
+.PHONY: data up down seed seed-jury seed-local test lint types backtest demo-reset
 
 # Архив датасета (его нет в git) → data/raw/{companies.csv, all_operations.csv, statements/}
 DATASET ?= cashflow_dataset_participants.zip
@@ -17,6 +17,10 @@ down:
 # Демо-персоны и их выписки (в контейнере api; датасет — из ./data/raw)
 seed:
 	docker compose exec api python scripts/seed_demo.py
+
+# Режим жюри: контекст всех 150 компаний (несколько минут); потом любую можно открыть на экране входа
+seed-jury:
+	docker compose exec api python scripts/seed_demo.py --jury
 
 # То же без Docker: БД — backend/kassa.db (SQLite)
 seed-local:

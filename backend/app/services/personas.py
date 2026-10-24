@@ -9,6 +9,11 @@ from dataclasses import dataclass
 
 DEMO_PASSWORD = "demo1234"
 DEMO_AS_OF = "2026-07-31"                    # «машина времени»: данные персон видны до этой даты
+JURY_EMAIL_PREFIX = "jury-"                  # режим жюри: остальные компании датасета, на карточках входа их нет
+
+
+def jury_email(company_id: str) -> str:
+    return f"{JURY_EMAIL_PREFIX}{company_id.lower()}@example.com"
 
 
 @dataclass(frozen=True)

@@ -27,6 +27,7 @@ services:
       FORECAST_MODE: ${FORECAST_MODE:-engine}
       TRUST_PROXY_HEADERS: "true"
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      CBR_KEY_RATE_FALLBACK: ${CBR_KEY_RATE_FALLBACK:-0.14}
       UPLOAD_DIR: /tmp/kassa-uploads
     volumes:
       - ./data:/data:ro

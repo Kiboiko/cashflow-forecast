@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError } from '../api/client'
-import { useBusiness, useTelegramTest, useUpdateSettings } from '../api/hooks'
+import { useBusiness, useKeyRate, useTelegramTest, useUpdateSettings } from '../api/hooks'
 import type { BusinessOut } from '../api/types'
 import { useCurrentBusiness } from '../auth'
 import { Check, Field, TextInput } from '../components/forms'
 import { IconPlus, IconX } from '../components/icons'
 import { Button, Card, ErrorBlock, SectionTitle, Segmented, Spinner } from '../components/ui'
 import { copy } from '../lib/copy'
+import { dmyShort } from '../lib/format'
+
+const PERCENT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
 
 interface AccountDraft {
   bank: string
@@ -175,6 +178,24 @@ function SettingsForm({ business }: { business: BusinessOut }) {
   )
 }
 
+/** Ключевая ставка ЦБ — ориентир для разговора про кредит. Не получилось с сайта ЦБ — честно говорим, что значение запасное. */
+function KeyRateCard() {
+  const rate = useKeyRate()
+  if (!rate.data) return null            // ошибка или загрузка: справочная карточка не должна мешать настройкам
+  const { rate: value, as_of: asOf, source } = rate.data
+  return (
+    <Card aria-labelledby="reference">
+      <SectionTitle id="reference">{copy.settings.reference}</SectionTitle>
+      <p className="text-ink">
+        {copy.settings.keyRate}: <span className="tnum font-semibold">{PERCENT.format(value * 100)}% годовых</span>
+        {source === 'cbr' && asOf && <span className="text-ink-2"> (на {dmyShort(asOf)})</span>}
+      </p>
+      {source === 'fallback' && <p className="mt-1 text-sm text-warn-ink">{copy.settings.keyRateFallback}</p>}
+      <p className="mt-2 text-sm text-ink-2">{copy.settings.keyRateHint}</p>
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   const { business } = useCurrentBusiness()
   const details = useBusiness(business?.id)
@@ -191,7 +212,14 @@ export default function SettingsPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold text-ink sm:text-2xl">{copy.settings.title}</h1>
       <p className="text-ink-2">{copy.settings.intro}</p>
-      {ready ? <SettingsForm key={business.id} business={ready} /> : <Spinner />}
+      {ready ? (
+        <>
+          <SettingsForm key={business.id} business={ready} />
+          <KeyRateCard />
+        </>
+      ) : (
+        <Spinner />
+      )}
     </div>
   )
 }

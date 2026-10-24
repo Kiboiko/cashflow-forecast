@@ -1,15 +1,15 @@
 import { useState } from 'react'
 
 import { ApiError } from '../api/client'
-import { useImportEvents, useReceivables } from '../api/hooks'
-import type { Direction, ReceivableRow } from '../api/types'
+import { useCounterpartyChecks, useImportEvents, useReceivables } from '../api/hooks'
+import type { CounterpartyCheck, Direction, ReceivableRow } from '../api/types'
 import { copy } from '../lib/copy'
 import { dm, plural, rub } from '../lib/format'
 import { FileButton } from './forms'
 import { IconAlertCircle, IconChevronDown, IconUpload } from './icons'
 import { Badge, Card, EmptyState, ErrorBlock, Spinner, Stat, cx } from './ui'
 
-function ClientCard({ row, direction }: { row: ReceivableRow; direction: Direction }) {
+function ClientCard({ row, direction, check }: { row: ReceivableRow; direction: Direction; check?: CounterpartyCheck }) {
   const [open, setOpen] = useState(false)
   const delay = direction === 'in' ? copy.payments.typicalDelay : copy.payments.typicalDelayOut
   return (
@@ -23,12 +23,21 @@ function ClientCard({ row, direction }: { row: ReceivableRow; direction: Directi
           <div className="mt-0.5 text-sm text-ink-2">
             {delay(row.typical_delay_days, row.delay_spread_days)} · {row.invoices.length} {plural(row.invoices.length, ['счёт', 'счёта', 'счетов'])}
           </div>
-          {row.overdue_amount > 0 && (
-            <Badge tone="warn" className="mt-2">
-              <IconAlertCircle size={14} />
-              {copy.payments.overdue}: {rub(row.overdue_amount)}
-            </Badge>
-          )}
+          <div className="flex flex-wrap gap-2 empty:hidden">
+            {row.overdue_amount > 0 && (
+              <Badge tone="warn" className="mt-2">
+                <IconAlertCircle size={14} />
+                {copy.payments.overdue}: {rub(row.overdue_amount)}
+              </Badge>
+            )}
+            {check && (
+              <Badge tone="crit" className="mt-2">
+                <IconAlertCircle size={14} />
+                {check.title}
+              </Badge>
+            )}
+          </div>
+          {check?.note && <p className="mt-1.5 text-[13px] text-ink-2">{check.note}</p>}
         </div>
         <IconChevronDown size={20} className={cx('mt-1 flex-none text-ink-2 transition-transform', open && 'rotate-180')} />
       </button>
@@ -62,6 +71,8 @@ function ClientCard({ row, direction }: { row: ReceivableRow; direction: Directi
 /** «Вам должны» (in) и «Вы должны» (out): открытые счета по контрагентам, обычная задержка и просрочка. */
 export function ReceivablesPanel({ bid, direction }: { bid: string; direction: Direction }) {
   const data = useReceivables(bid, direction)
+  const checks = useCounterpartyChecks(bid, (data.data?.rows ?? []).flatMap((r) => (r.counterparty_inn ? [r.counterparty_inn] : [])))
+  const flagged = new Map((checks.data?.flagged ?? []).map((c) => [c.inn, c]))
   const upload = useImportEvents(bid)
   const [message, setMessage] = useState<string | null>(null)
   const error = upload.error instanceof ApiError ? upload.error.message : null
@@ -110,10 +121,16 @@ export function ReceivablesPanel({ bid, direction }: { bid: string; direction: D
           ) : (
             <ul className="space-y-3">
               {info.rows.map((row) => (
-                <ClientCard key={row.counterparty_inn ?? row.counterparty ?? row.open_amount} row={row} direction={direction} />
+                <ClientCard
+                  key={row.counterparty_inn ?? row.counterparty ?? row.open_amount}
+                  row={row}
+                  direction={direction}
+                  check={row.counterparty_inn ? flagged.get(row.counterparty_inn) : undefined}
+                />
               ))}
             </ul>
           )}
+          {flagged.size > 0 && <p className="text-[13px] text-ink-2">{copy.payments.registryNote}</p>}
           <Card className="space-y-3">
             <p className="text-sm text-ink-2">Есть свой файл со счетами? Он заменит демо-данные и сразу попадёт в прогноз.</p>
             {picker}
