@@ -12,6 +12,13 @@ def test_holidays_and_working_saturday():
     assert not is_workday(date(2025, 11, 2))     # обычное воскресенье
 
 
+def test_2027_holidays_that_follow_from_the_labour_code():
+    # горизонт 90 дней с конца 2026 года заходит в 2027-й
+    assert not is_workday(date(2027, 1, 1)) and not is_workday(date(2027, 1, 8))
+    assert not is_workday(date(2027, 5, 3))      # 1 мая — суббота → понедельник
+    assert not is_workday(date(2027, 6, 14))     # 12 июня — суббота → понедельник
+
+
 def test_salary_from_saturday_moves_to_friday():
     assert shift(date(2026, 8, 22), "prev") == date(2026, 8, 21)
 

@@ -99,16 +99,26 @@ def largest_client(model: Model) -> str | None:
 
 
 def _client_flows(model: Model, key: str) -> np.ndarray | None:
-    """Ожидаемые оплаты клиента вне регулярных потоков: недельное среднее × дневная раскладка потока прочих приходов."""
-    rates_in = next((r for r in model.rates if r.direction == 1), None)
-    if rates_in is None:
-        return None
+    """Ожидаемые оплаты клиента, которые модель ведёт не отдельными событиями.
+
+    Без учётных данных — недельное среднее клиента × дневная раскладка потока прочих приходов (rates). Если подключены
+    счета, оплаты клиентов ведут явные счета (их сдвигаем как события) и «выставление × задержка» — здесь берём долю
+    клиента в будущих выставлениях.
+    """
     ops = model.ops
-    paid = ops[(ops["direction"] == 1) & ops["category"].isin(CLIENT_CATEGORIES) & (ops["cp_key"] == key)
+    paid = ops[(ops["direction"] == 1) & ops["category"].isin(CLIENT_CATEGORIES)
                & (ops["date"] > pd.Timestamp(model.as_of - timedelta(days=7 * WEEKS)))
                & (ops["date"] <= pd.Timestamp(model.as_of))]
     paid = paid[~stream_keys(paid).isin({s.key for s in model.streams})]
-    return float(paid["amount"].sum()) / WEEKS * rates_in.share
+    client = float(paid.loc[paid["cp_key"] == key, "amount"].sum())
+    future_in = next((f for f in model.future if f.direction == 1), None)
+    if future_in is not None:
+        total = float(paid["amount"].sum())
+        return client / total * future_in.expected() if total > 0 else None
+    rates_in = next((r for r in model.rates if r.direction == 1), None)
+    if rates_in is None:
+        return None
+    return client / WEEKS * rates_in.share
 
 
 def _delay(flows: np.ndarray, days: int) -> np.ndarray:
@@ -116,6 +126,12 @@ def _delay(flows: np.ndarray, days: int) -> np.ndarray:
     if days < len(flows):
         out[days:] = flows[: len(flows) - days]
     return out
+
+
+def _invoice_factor(direction: int) -> str:
+    """Общий множитель — свой у оплат клиентов и у счетов поставщиков: иначе приходы и расходы ходили бы вместе
+    и гасили друг другу разброс."""
+    return "invoices:in" if direction > 0 else "invoices:out"
 
 
 def apply_shocks(model: Model, shocks: list) -> tuple[list[PlannedEvent], list]:
@@ -166,9 +182,10 @@ def apply_shocks(model: Model, shocks: list) -> tuple[list[PlannedEvent], list]:
     components = []
     for e in events:
         c = TimedEvent(e) if e.date_pmf else FixedEvent(e)
-        components.append(SharedFactor(c, model.seed, "invoices", INVOICE_LEVEL_CV) if e.source in INVOICE_SOURCES else c)
-    future = [SharedFactor(f, model.seed, "invoices", INVOICE_LEVEL_CV) if hasattr(f, "per_workday") else f
-              for f in future]
+        components.append(SharedFactor(c, model.seed, _invoice_factor(e.direction), INVOICE_LEVEL_CV)
+                          if e.source in INVOICE_SOURCES else c)
+    future = [SharedFactor(f, model.seed, _invoice_factor(f.direction), INVOICE_LEVEL_CV)
+              if hasattr(f, "per_workday") else f for f in future]
     components += ([revenue] if revenue is not None else []) + rates + future + extra
     return events, components
 
@@ -209,22 +226,22 @@ def scenario_summary(shocks: list, base: ForecastResult, scenario: ForecastResul
     cause = "Если " + " и ".join(_shock_phrase(s) for s in shocks)
     delta = scenario_delta(base, scenario)
     b, s = _gap_date(base), _gap_date(scenario)
-    parts = []
     if s and not b:
-        parts.append(f"денег может не хватить около {dm(s)}")
-    elif b and not s:
+        return f"{cause}, {dm(s)} может не хватить около {rub(scenario.risk.shortfall_p50)}."
+    if b and not s:
         return f"{cause}, нехватки денег не ожидается."
-    elif delta.gap_date_shift_days:
+    parts = []
+    if delta.gap_date_shift_days:
         d = abs(delta.gap_date_shift_days)
         parts.append(f"денег может не хватить на {d} {plural(d, 'день', 'дня', 'дней')} "
                      f"{'раньше' if delta.gap_date_shift_days < 0 else 'позже'}")
-    # «на X больше»: 90-й перцентиль нехватки по ВСЕМ сценариям монотонен при плохих шоках, в отличие от
-    # медианы только по сценариям с разрывом (при шоке в неё попадают более мягкие разрывы)
-    buffer = scenario.risk.safe_buffer - base.risk.safe_buffer
-    if buffer > 1000:
-        parts.append(f"на {rub(buffer)} больше" if b else f"не хватит около {rub(scenario.risk.safe_buffer)}")
-    elif buffer < -1000:
-        parts.append(f"на {rub(-buffer)} меньше")
+    # сумма — та же, что в `delta.shortfall_p50` и заголовках риска («может не хватить около …»). Это медиана по
+    # сценариям с разрывом: при плохом шоке в неё попадают и новые мягкие разрывы, и она может даже уменьшиться,
+    # поэтому «меньше» говорим, только если и шанс разрыва не вырос
+    if b and delta.shortfall_p50 > 1000:
+        parts.append(f"на {rub(delta.shortfall_p50)} больше")
+    elif b and delta.shortfall_p50 < -1000 and delta.gap_probability <= 0:
+        parts.append(f"на {rub(-delta.shortfall_p50)} меньше")
     if not parts:
         chance = round(delta.gap_probability * 100)
         return f"{cause}, это почти не изменит прогноз." if abs(chance) < 2 else \

@@ -87,6 +87,47 @@ def test_partial_payment_and_tolerance():
     assert near["rent"].status == "fulfilled"                                                # в пределах допуска 10%
 
 
+def test_manual_promise_is_matched_by_amount_and_date_without_category():
+    from app.engine.plan import manual_event
+    from app.schemas import EventCreate
+
+    ops = full_statement()
+    promise = manual_event(EventCreate(title="Клиент обещал оплатить", direction="in", amount=300_000.0,
+                                       date=date(2026, 8, 10), counterparty_name="ООО «Ромашка»"), 1)
+    res = run_forecast(ops[ops["date"] <= pd.Timestamp(AS_OF)], AS_OF, n_paths=200, seed=3, planned=[promise])
+    paid = enrich(categorize(make_statement(merge(history(), {
+        date(2026, 8, 11): [op(1, 300_000.0, "Оплата по договору поставки № 12", inn="0123", name="ООО «Ромашка»")]}),
+        start=1_000_000.0)))
+    match = next(m for m in match_events(make_snapshot(res), paid, FACT_UNTIL) if m.event["id"] == "manual:1")
+    assert match.status == "fulfilled" and match.days_late == 1
+    missing = next(m for m in match_events(make_snapshot(res), facts(), FACT_UNTIL) if m.event["id"] == "manual:1")
+    assert missing.status == "overdue"                                   # оплаты не было — честное «не пришла»
+    stranger = enrich(categorize(make_statement(merge(history(), {
+        date(2026, 8, 11): [op(1, 300_000.0, "Оплата по договору № 3", inn="0456", name="ООО «Другой»")]}),
+        start=1_000_000.0)))
+    other = next(m for m in match_events(make_snapshot(res), stranger, FACT_UNTIL) if m.event["id"] == "manual:1")
+    assert other.status == "overdue"                                     # чужая оплата той же суммы — не она
+
+
+def test_manual_event_without_counterparty_needs_an_exact_amount():
+    from app.engine.plan import manual_event
+    from app.schemas import EventCreate
+
+    ops = full_statement()
+    promise = manual_event(EventCreate(title="Обещали оплату", direction="in", amount=300_000.0,
+                                       date=date(2026, 8, 10)), 2)
+    snap = make_snapshot(run_forecast(ops[ops["date"] <= pd.Timestamp(AS_OF)], AS_OF, n_paths=200, seed=3,
+                                      planned=[promise]))
+
+    def status(amount):
+        paid = enrich(categorize(make_statement(merge(history(), {
+            date(2026, 8, 10): [op(1, amount, "Оплата по счету № 8", inn="0456", name="ООО «Клиент»")]}),
+            start=1_000_000.0)))
+        return next(m for m in match_events(snap, paid, FACT_UNTIL) if m.event["id"] == "manual:2").status
+
+    assert status(300_000.0) == "fulfilled" and status(285_000.0) == "overdue"
+
+
 def test_late_payment_inside_grace_is_still_matched_and_one_operation_is_used_once():
     snap, _ = snapshot_for()
     late = enrich(categorize(make_statement(merge(history(), {

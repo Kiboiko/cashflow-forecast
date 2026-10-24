@@ -151,8 +151,8 @@ def _detect_one(key: str, g: pd.DataFrame, as_of: date) -> RecurringStream | Non
     elif period == "weekly":
         explain = f"Платёж по {_WEEKDAYS[anchor]} последние недели; сумма ≈ медиана 3 последних"
     else:
-        explain = (f"Платите {anchor}-го последние {min(6, len(per_day))} мес.; "
-                   "сумма ≈ медиана 3 последних выплат")
+        explain = (f"{'Платите' if CANDIDATES[category] < 0 else 'Поступает'} {anchor}-го последние "
+                   f"{min(6, len(per_day))} мес.; сумма ≈ медиана 3 последних выплат")
 
     seasonal = _seasonal_amounts(per_day) if category in SEASONAL_MONTHLY and period == "monthly" else None
 
@@ -189,6 +189,13 @@ def _title(s: RecurringStream) -> str:
     return TAXONOMY[s.category].title
 
 
+def _due(s: RecurringStream, year: int, month: int) -> date:
+    """Ожидаемая дата платежа месяца: номинальный день → рабочий день по правилу → + обычная задержка факта
+    к плановой дате (зарплату по реестру от 10-го стабильно платят 24-го → ждём 24-го)."""
+    d = shift(nominal_date(year, month, s.anchor_day), s.shift_rule)
+    return shift(d + timedelta(days=s.typical_delay_days), "next") if s.typical_delay_days > 0 else d
+
+
 def _stream_dates(s: RecurringStream, as_of: date, end: date) -> list[date]:
     if s.period == "weekly":
         out, d = [], s.last_date + timedelta(days=7)
@@ -201,11 +208,13 @@ def _stream_dates(s: RecurringStream, as_of: date, end: date) -> list[date]:
     if s.period == "quarterly":                           # месяцы платежей: месяц последнего + 3k
         offset = (first - pd.Period(s.last_date, "M")).n % 3
         first = first + ((3 - offset) % 3)
+    elif s.typical_delay_days > 0:                        # платёж по плану прошлого месяца может прийти в горизонт
+        first -= 1
     months = pd.period_range(first, pd.Period(end, "M"), freq="M")[::step]
     skip_within = 0.3 * PERIOD_DAYS[s.period]
     out = []
     for p in months:
-        d = shift(nominal_date(p.year, p.month, s.anchor_day), s.shift_rule)
+        d = _due(s, p.year, p.month)
         if as_of < d <= end and (d - s.last_date).days >= skip_within:   # платёж этого периода уже был
             out.append(d)
     return out
@@ -215,7 +224,7 @@ def _overdue_date(s: RecurringStream, as_of: date) -> date | None:
     """Обязательный месячный платёж этого месяца должен был пройти, но ещё не прошёл → ближайший рабочий день."""
     if s.period != "monthly" or not s.mandatory:
         return None
-    due = shift(nominal_date(as_of.year, as_of.month, s.anchor_day), s.shift_rule)
+    due = _due(s, as_of.year, as_of.month)
     if due <= as_of and (as_of - due).days <= MAX_OVERDUE_DAYS and s.last_date < due - timedelta(days=5):
         return shift(as_of + timedelta(days=1), "next")
     return None

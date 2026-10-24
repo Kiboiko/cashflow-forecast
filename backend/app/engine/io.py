@@ -32,3 +32,8 @@ def load_companies(path: str | Path) -> pd.DataFrame:
 
 def load_statement(raw_dir: str | Path, company_id: str) -> pd.DataFrame:
     return load_operations(Path(raw_dir) / "statements" / f"{company_id}.csv")
+
+
+def load_invoices(path: str | Path) -> pd.DataFrame:
+    """CSV счетов (§13) как строки: разбор дат, сумм и направлений — `receivables.invoices_from_frame`."""
+    return pd.read_csv(path, sep=";", encoding="utf-8-sig", dtype=str, keep_default_na=False)

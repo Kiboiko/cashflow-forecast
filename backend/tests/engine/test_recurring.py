@@ -78,6 +78,9 @@ def test_delayed_salary_anchor_comes_from_register_date():
     stream = detect_streams(prepare(days, as_of), as_of)[0]
     assert stream.key == "salary:final" and stream.anchor_day == 10
     assert 12 <= stream.typical_delay_days <= 16
+    # в прогнозе — плановая дата + обычная задержка: ждём выплату около 24 апреля, а не 10-го
+    dates = [e.date for e in expand_streams([stream], as_of, 30)]
+    assert len(dates) == 1 and date(2026, 4, 22) <= dates[0] <= date(2026, 4, 27)
 
 
 def test_mandatory_payment_not_made_yet_is_scheduled_as_overdue():

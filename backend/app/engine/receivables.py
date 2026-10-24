@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -297,16 +297,45 @@ def restore_open_documents(ops_full: pd.DataFrame, as_of: date) -> list[Invoice]
     return invoices
 
 
+def _text(value) -> str | None:
+    """Ячейка таблицы → строка без пробелов по краям; пустая ячейка или NaN → None."""
+    if value is None or (not isinstance(value, str) and pd.isna(value)):
+        return None
+    return str(value).strip() or None
+
+
+def _parse_date(value) -> date | None:
+    """ISO (2026-08-05) или российский формат (05.08.2026); пусто → None."""
+    if isinstance(value, date):
+        return value.date() if isinstance(value, datetime) else value
+    text = _text(value)
+    if text is None:
+        return None
+    parsed = pd.to_datetime(text, format="%d.%m.%Y" if "." in text else "ISO8601", errors="coerce")
+    return None if pd.isna(parsed) else parsed.date()
+
+
+def _parse_amount(value) -> float:
+    """150000.5, «150000,50» и «150 000,50» → 150000.5."""
+    return float(value) if isinstance(value, int | float) else float(str(value).replace("\xa0", "").replace(" ", "")
+                                                                     .replace(",", "."))
+
+
 def invoices_from_frame(df: pd.DataFrame, source: str = "csv") -> list[Invoice]:
-    """Счета из таблицы (CSV §13): doc_type;doc_no;doc_date;direction;counterparty_inn;counterparty_name;amount;due_date."""
+    """Счета из таблицы (CSV §13): doc_type;doc_no;doc_date;direction;counterparty_inn;counterparty_name;amount;due_date.
+
+    Читать CSV — `io.load_invoices` (все столбцы строками, чтобы ИНН не потеряли ведущие нули).
+    """
     out = []
-    for r in df.to_dict("records"):
-        due = pd.to_datetime(r.get("due_date"), errors="coerce")
+    for i, r in enumerate(df.to_dict("records"), 1):
+        doc_date, direction = _parse_date(r["doc_date"]), _text(r["direction"])
+        if doc_date is None or direction not in ("in", "out"):
+            raise ValueError(f"Строка {i}: нужна дата документа и направление in/out")
         out.append(Invoice(
-            doc_no=str(r["doc_no"]), doc_date=pd.to_datetime(r["doc_date"]).date(), direction=str(r["direction"]),
-            amount=float(r["amount"]), counterparty_inn=None if pd.isna(r.get("counterparty_inn")) else str(r["counterparty_inn"]),
-            counterparty_name=None if pd.isna(r.get("counterparty_name")) else str(r["counterparty_name"]),
-            doc_type=str(r.get("doc_type") or "invoice"), due_date=None if pd.isna(due) else due.date(), source=source))
+            doc_no=_text(r["doc_no"]) or str(i), doc_date=doc_date, direction=direction,
+            amount=_parse_amount(r["amount"]), counterparty_inn=_text(r.get("counterparty_inn")),
+            counterparty_name=_text(r.get("counterparty_name")), doc_type=_text(r.get("doc_type")) or "invoice",
+            due_date=_parse_date(r.get("due_date")), source=source))
     return out
 
 

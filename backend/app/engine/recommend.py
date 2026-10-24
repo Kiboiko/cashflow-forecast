@@ -18,6 +18,8 @@ from app.engine.simulate import Simulation
 from app.schemas import Recommendation, RecommendationEffect
 
 DEFERRABLE = {"suppliers", "marketing", "services", "contractors", "logistics", "telecom_it"}
+RECEIVABLE_SOURCES = {"invoice", "csv", "1c", "demo_accounting"}   # открытые счета клиентов из учётных данных
+MIN_LATE_SHARE = 0.3                 # просим ускорить оплату, если она скорее придёт после срока, чем до
 DEFER_DAYS = 14                      # на сколько дней просим перенести платёж
 CREDIT_DAYS = 14
 DEFAULT_CREDIT_RATE = 0.22           # годовых; по умолчанию, пока нет адаптера ставки ЦБ (P2)
@@ -41,18 +43,31 @@ def _deadline(model: Model, stats: RiskStats) -> date:
     return max(model.dates[0], shift(_gap_day(stats) - timedelta(days=1), "prev"))
 
 
+def _replaced(sim: Simulation, key: str, new: np.ndarray) -> Simulation:
+    """Те же сценарии, но поток компонента `key` заменён на `new` [N, H]."""
+    m = sim.components[key]
+    flows = sim.flows - m + new
+    return Simulation(
+        sim.dates, sim.start_balance, flows,
+        sim.inflow - np.maximum(m, 0) + np.maximum(new, 0), sim.outflow - np.maximum(-m, 0) + np.maximum(-new, 0),
+        sim.start_balance + flows.cumsum(axis=1), sim.seed, sim.components,
+    )
+
+
 def _moved(sim: Simulation, key: str, days: int) -> Simulation:
     """Те же сценарии, но поток компонента сдвинут на `days` дней вперёд (платёж перенесён)."""
     m = sim.components[key]
     moved = np.zeros_like(m)
     if days < m.shape[1]:
         moved[:, days:] = m[:, : m.shape[1] - days]
-    flows = sim.flows - m + moved
-    return Simulation(
-        sim.dates, sim.start_balance, flows,
-        sim.inflow - np.maximum(m, 0) + np.maximum(moved, 0), sim.outflow - np.maximum(-m, 0) + np.maximum(-moved, 0),
-        sim.start_balance + flows.cumsum(axis=1), sim.seed, sim.components,
-    )
+    return _replaced(sim, key, moved)
+
+
+def _paid_by(sim: Simulation, key: str, day_index: int, amount: float) -> Simulation:
+    """Те же сценарии, но клиент оплачивает счёт целиком в день `day_index`."""
+    new = np.zeros_like(sim.components[key])
+    new[:, day_index] = amount
+    return _replaced(sim, key, new)
 
 
 def _extra(model: Model, day: date, amount: float) -> np.ndarray:
@@ -78,6 +93,23 @@ def _candidates(model: Model, sim: Simulation, stats: RiskStats):
     """(тип, заголовок, сумма, срок, симуляция после действия)."""
     gap, deadline = _gap_day(stats), _deadline(model, stats)
     out = []
+
+    # 0. попросить клиента оплатить открытый счёт до срока, если оплата скорее придёт после него
+    receivables = []
+    for e in model.events:
+        key = f"event:{e.id}"
+        if (e.direction != 1 or not e.date_pmf or e.source not in RECEIVABLE_SOURCES
+                or not sim.components or key not in sim.components):
+            continue
+        late = 1.0 - sum(p for d, p in e.date_pmf if d <= deadline)       # включая шанс, что не заплатит в горизонте
+        if late >= MIN_LATE_SHARE:
+            receivables.append((e.amount * late, e))
+    for _, e in sorted(receivables, key=lambda r: -r[0])[:2]:
+        who = e.counterparty or e.counterparty_inn or "клиента"
+        doc = e.id.split(":", 2)[-1]
+        out.append(("collect_receivable",
+                    f"Попросите {who} оплатить документ № {doc} ({rub(e.amount)}) до {dm(deadline)}",
+                    e.amount, deadline, _paid_by(sim, f"event:{e.id}", model.dates.index(deadline), e.amount)))
 
     # 1. перенос необязательных платежей поставщикам, рекламе и т. п. из окна до разрыва
     deferrable = sorted((e for e in model.events if e.direction == -1 and not e.mandatory and e.date
@@ -144,7 +176,7 @@ def recommend(model: Model, sim: Simulation, stats: RiskStats) -> list[Recommend
                              effect=effect, priority=0)
         (credit if kind == "credit_line" else free).append(rec)
     free.sort(key=lambda r: (r.effect.gap_probability_after, r.effect.shortfall_p50_after))
-    ranked = (free + credit)[:MAX_RECOMMENDATIONS]
+    ranked = free[: MAX_RECOMMENDATIONS - len(credit)] + credit          # кредит не вытесняется, но всегда последний
     for i, rec in enumerate(ranked, 1):
         rec.id, rec.priority = f"r{i}", i
     return ranked

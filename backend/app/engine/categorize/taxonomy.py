@@ -78,3 +78,14 @@ EXCLUDED_FROM_MODEL = frozenset(
 UNKNOWN = frozenset({"unknown_in", "unknown_out"})
 
 REVENUE_CATEGORIES = frozenset(c.code for c in _ALL if c.group == "выручка")
+
+# Категории поступлений; остальные коды таксономии — списания.
+INFLOW = REVENUE_CATEGORIES | {"insurance_in", "subsidy_in", "refund_in", "own_transfer_in", "owner_injection",
+                               "loan_in", "unknown_in"}
+
+
+def category_direction(code: str) -> int | None:
+    """+1 для категорий поступлений, −1 для списаний, None для кода вне таксономии."""
+    if code not in TAXONOMY:
+        return None
+    return 1 if code in INFLOW else -1

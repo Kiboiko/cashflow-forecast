@@ -13,7 +13,8 @@ import numpy as np
 import pandas as pd
 
 from app.engine.calendar_ru import is_workday
-from app.engine.categorize.taxonomy import EXCLUDED_FROM_MODEL
+from app.engine.categorize.taxonomy import EXCLUDED_FROM_MODEL, TAXONOMY
+from app.engine.normalize import norm_text
 from app.engine.types import ForecastResult
 from app.schemas import PlanFactDay, PlanFactEvent, PlanFactResponse, PlanFactSummary
 
@@ -22,9 +23,16 @@ GRACE_WORKDAYS = 3                  # допуск для регулярных �
 AMOUNT_TOL_PCT = 0.10
 AMOUNT_TOL_RUB = 1_000.0
 PARTIAL_MIN_SHARE = 0.30            # меньше 30% суммы — это не частичная оплата
+EXACT_TOL_PCT = 0.01                # ручное событие без контрагента: сумма должна совпасть почти точно
 DEVIATION_PCT = 0.20                # отклонение недели/дня, которое подсвечиваем
 DEVIATION_RUB = 10_000.0
 SNAPSHOT_VERSION = 1
+_QUOTES = str.maketrans("", "", "«»\"'“”„")
+
+
+def _party_name(name) -> str:
+    """«ООО «Ромашка»» → «ооо ромашка»: для поиска контрагента ручного события по названию."""
+    return norm_text(name).translate(_QUOTES).strip()
 
 
 def _grace_days(event) -> int:
@@ -91,15 +99,21 @@ def match_events(snapshot: dict, ops: pd.DataFrame, fact_until: date) -> list[Ma
         hi = pd.Timestamp(due + timedelta(days=e["grace_days"]))
         cand = fact[(fact["direction"] == e["direction"]) & (fact["date"] >= lo) & (fact["date"] <= hi)
                     & ~fact["operation_id"].isin(used)]
-        same_party = (cand["cp_key"] == e["counterparty_inn"]) if e["counterparty_inn"] else cand["category"] == e["category"]
-        cand = cand[same_party | (cand["category"] == e["category"])]
         tol = max(AMOUNT_TOL_PCT * e["amount"], AMOUNT_TOL_RUB)
+        partial_ok = True
+        if e["counterparty_inn"] or e["category"] in TAXONOMY:
+            same_party = (cand["cp_key"] == e["counterparty_inn"]) if e["counterparty_inn"] else False
+            cand = cand[same_party | (cand["category"] == e["category"])]
+        elif name := _party_name(e.get("counterparty")):     # ручное событие с названием контрагента: ищем его
+            cand = cand[cand["counterparty_name"].map(_party_name).str.contains(name, regex=False)]
+        else:                                        # ни ИНН, ни категории, ни названия: только точная сумма
+            tol, partial_ok = max(EXACT_TOL_PCT * e["amount"], AMOUNT_TOL_RUB), False
         best, status = None, None
         for _, f in cand.iloc[np.argsort(np.abs((cand["date"] - pd.Timestamp(due)).dt.days.values), kind="stable")].iterrows():
             if abs(f["amount"] - e["amount"]) <= tol:
                 best, status = f, "fulfilled"
                 break
-            if PARTIAL_MIN_SHARE * e["amount"] <= f["amount"] < e["amount"] - tol and best is None:
+            if partial_ok and PARTIAL_MIN_SHARE * e["amount"] <= f["amount"] < e["amount"] - tol and best is None:
                 best, status = f, "partially"
         if best is not None:
             used.add(best["operation_id"])
