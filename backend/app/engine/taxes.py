@@ -160,7 +160,8 @@ def forecast_enp(ops: pd.DataFrame, as_of: date, horizon: int = 30,
             explain = (f"В {_IN_MONTH[p.month - 1]} налог обычно выше — похоже на авансовый платёж по УСН. "
                        "Оценка по вашей истории")
         else:
-            explain = "ЕНП платите около 28-го; сумма оценена по вашей истории"
+            explain = ("ЕНП платите около 28-го (в него входят налоги и взносы, у плательщиков НДС — НДС частями за "
+                       "квартал); сумма оценена по вашей истории")
         events.append(PlannedEvent(
             id=f"tax:enp:{d.isoformat()}", direction=-1, amount=round(remaining, 2), date=d,
             p_within_horizon=EVENT_PROBABILITY, amount_cv=cv, category="tax_enp", title="Налоги (ЕНП)",
