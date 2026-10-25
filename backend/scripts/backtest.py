@@ -202,6 +202,21 @@ def by_industry(points: list[dict], industry: dict[str, str], horizon: int = 30)
     return {k: {"n": len(v), "rel_mae_median": float(np.median(v))} for k, v in sorted(rows.items())}
 
 
+def json_safe(obj):
+    """NaN и бесконечности → None: стандартный JSON (его отдаёт API страницы «Как мы считаем») их не допускает."""
+    if isinstance(obj, dict):
+        return {k: json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list | tuple):
+        return [json_safe(v) for v in obj]
+    if isinstance(obj, float) and not np.isfinite(obj):
+        return None
+    if isinstance(obj, np.floating):
+        return float(obj) if np.isfinite(obj) else None
+    if isinstance(obj, np.integer):
+        return int(obj)
+    return obj
+
+
 def rub0(v: float | None) -> str:
     return "—" if v is None else f"{v:,.0f} ₽".replace(",", " ")
 
@@ -453,7 +468,7 @@ def main() -> None:
     }
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / f"backtest_{report['generated']}.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        json.dumps(json_safe(report), ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     (args.out / "backtest.md").write_text(markdown(report), encoding="utf-8")
     draw_figures(report, test, [p for p in test if "paths" in p], args.out / "figures")
     print((args.out / "backtest.md").read_text(encoding="utf-8"))

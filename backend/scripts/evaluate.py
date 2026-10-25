@@ -568,7 +568,8 @@ def main() -> None:
                 for item in approaches.values():
                     item["horizons"][str(HORIZON)] = item["horizons"][hk]
         draw_forecasts(detailed, out / "figures")
-        (out / "evaluation.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        (out / "evaluation.json").write_text(json.dumps(bt.json_safe(report), ensure_ascii=False, indent=2, default=str,
+                                                        allow_nan=False), encoding="utf-8")
         if args.publish and points:
             target = ROOT / "reports" / f"backtest_{datetime.now():%Y-%m-%d_%H%M}_control.json"
             shutil.copyfile(out / "evaluation.json", target)

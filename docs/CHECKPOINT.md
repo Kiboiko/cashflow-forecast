@@ -51,22 +51,31 @@ uv run python scripts/evaluate.py --data ..\control.zip --history ..\data\raw --
 ## 2. Контрольные компании в интерфейсе (скриншоты графиков)
 
 Номера компаний контрольного датасета могут совпасть с уже загруженными, поэтому для него — отдельная база.
-Остановите API демо (окно с uvicorn) и запустите его на контрольных данных:
+Остановите API демо (процесс на порту 8000) и запустите его на контрольных данных в том же окне PowerShell:
 
 ```powershell
 cd backend
+Get-NetTCPConnection -LocalPort 8000 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 $env:DATA_DIR = "..\data\control"; $env:DATABASE_URL = "sqlite:///control.db"; $env:JURY_AS_OF = "last"
 uv run python scripts/seed_demo.py --jury --as-of 2026-09-30      # дата — конец периода из evaluation_log.txt
 uv run uvicorn app.main:create_app --factory --port 8000
 ```
+
+Репетиция по этой инструкции (10 компаний): проверка 13 с, `seed_demo --jury` 7 с, запуск API 4 с, первая компания
+открывается за 1 с; страница «Как мы считаем» показывает опубликованный отчёт. После показа удалите
+`reports/backtest_*_control.json`, `backend/control.db` и `data/control`.
 
 Откройте http://localhost:5173 → блок «Для жюри» → выберите компанию → «Открыть» (первый вход — до минуты).
 Прогноз строится от последней даты выписки — той же, что в отчёте. Показать: «Главная» (график остатка с коридором,
 светофор, причины, обязательные платежи, рекомендации), «Платежи», «Что если», «Как мы считаем» (метрики контрольного
 датасета).
 
-Вернуться к демо-персонам: остановить API и запустить снова без переменных окружения
-(`Remove-Item Env:DATA_DIR, Env:DATABASE_URL, Env:JURY_AS_OF`, потом `uv run uvicorn app.main:create_app --factory --port 8000`).
+Вернуться к демо-персонам: остановить API (Ctrl+C или команда выше) и запустить снова без переменных окружения:
+
+```powershell
+Remove-Item Env:DATA_DIR, Env:DATABASE_URL, Env:JURY_AS_OF
+uv run uvicorn app.main:create_app --factory --port 8000
+```
 
 ## 3. Демо на персонах (≈5 минут)
 

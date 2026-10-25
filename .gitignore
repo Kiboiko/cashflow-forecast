@@ -32,3 +32,9 @@ frontend/openapi.json
 # Локальная база демо (SQLite, без Docker)
 backend/kassa.db
 backend/kassa.db-*
+
+# Контрольный датасет на чек-поинте: отчёт, временная подмена страницы «Как мы считаем», база и данные для интерфейса
+reports/control/
+reports/backtest_*_control.json
+backend/control.db
+backend/control.db-*
