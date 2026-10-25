@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
 import { useDemoLogin, useJuryCompanies, useJuryLogin, useLogin, usePersonas } from '../api/hooks'
@@ -178,6 +178,11 @@ export default function LoginPage() {
             {copy.login.submit}
           </Button>
         </form>
+        <p className="mt-4 text-sm">
+          <Link to="/register" className="text-accent-ink underline">
+            {copy.login.toRegister}
+          </Link>
+        </p>
       </Card>
     </div>
   )

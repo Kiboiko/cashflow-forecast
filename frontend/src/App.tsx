@@ -15,12 +15,14 @@ const PlanFactPage = lazy(() => import('./pages/PlanFact'))
 const OperationsPage = lazy(() => import('./pages/Operations'))
 const HowItWorksPage = lazy(() => import('./pages/HowItWorks'))
 const SettingsPage = lazy(() => import('./pages/Settings'))
+const RegisterPage = lazy(() => import('./pages/Register'))
 
 export default function App() {
   return (
     <Suspense fallback={<Spinner />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           element={
             <RequireAuth>

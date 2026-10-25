@@ -1,8 +1,12 @@
 """POST /auth/login, демо-персоны и вход одним нажатием (§9.1 экран 1, §10)."""
 from __future__ import annotations
 
+import logging
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.db.models import Business, User
 from app.db.session import DbSession
@@ -12,6 +16,7 @@ from app.schemas import (
     JuryCompany,
     JuryLoginRequest,
     LoginRequest,
+    RegisterRequest,
     TokenResponse,
     UserOut,
 )
@@ -20,6 +25,7 @@ from app.services import jury_service
 from app.services.personas import JURY_EMAIL_PREFIX
 
 router = APIRouter(tags=["auth"])
+log = logging.getLogger("kassa.auth")
 
 _DUMMY_HASH = hash_password("dummy-password-for-timing")      # чтобы неизвестный email отвечал за то же время
 
@@ -39,6 +45,28 @@ def login(body: LoginRequest, request: Request, db: DbSession) -> TokenResponse:
     ok = verify_password(body.password, user.password_hash if user else _DUMMY_HASH)
     if user is None or not ok:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Неверный email или пароль")
+    return _token(request, user)
+
+
+@router.post("/auth/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(login_rate_limit)])
+def register(body: RegisterRequest, request: Request, db: DbSession) -> TokenResponse:
+    """Новый предприниматель и его пустой бизнес; прогноз появится после загрузки выписки (до неё — 409 no_data)."""
+    email = body.email.strip().lower()
+    if db.scalar(select(User).where(User.email == email)) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Этот email уже зарегистрирован. Войдите или укажите другой.")
+    user = User(email=email, password_hash=hash_password(body.password), display_name=body.display_name.strip(),
+                is_demo=False)
+    db.add(user)
+    try:
+        db.flush()                                              # unique(email): гонка двух регистраций → 409, не 500
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Этот email уже зарегистрирован. Войдите или укажите другой.") from None
+    db.add(Business(id=f"U{uuid.uuid4().hex[:10]}", owner_user_id=user.id, name=body.business_name.strip(),
+                    inn=body.inn, legal_form=body.legal_form))     # код «U…» не пересекается с кодами датасета C###
+    db.commit()
+    log.info("register", extra={"fields": {"user": user.id}})
     return _token(request, user)
 
 

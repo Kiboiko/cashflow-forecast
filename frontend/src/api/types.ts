@@ -15,6 +15,7 @@ export type DataQuality = S['DataQuality']
 export type ForecastTrace = S['ForecastTrace']
 
 export type TokenResponse = S['TokenResponse']
+export type RegisterRequest = S['RegisterRequest']
 export type UserOut = S['UserOut']
 export type MeResponse = S['MeResponse']
 export type BusinessBrief = S['BusinessBrief']

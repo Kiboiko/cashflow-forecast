@@ -9,7 +9,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 Direction = Literal["in", "out"]
 RiskLevel = Literal["green", "yellow", "red"]
@@ -279,6 +279,16 @@ class Alert(Schema):
 class LoginRequest(Schema):
     email: str
     password: str
+
+
+class RegisterRequest(Schema):
+    """Регистрация предпринимателя вместе с его бизнесом: выписку он загружает уже после входа."""
+    email: Annotated[str, StringConstraints(strip_whitespace=True, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
+    password: Annotated[str, Field(min_length=8, max_length=72)]       # bcrypt учитывает первые 72 байта
+    display_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+    business_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+    legal_form: Literal["ООО", "ИП"] | None = None
+    inn: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^(\d{10}|\d{12})$")] | None = None
 
 
 class DemoLoginRequest(Schema):

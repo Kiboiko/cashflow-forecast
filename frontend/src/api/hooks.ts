@@ -32,6 +32,7 @@ import type {
   SettingsPatch,
   SnapshotBrief,
   TelegramTestResult,
+  RegisterRequest,
   TokenResponse,
   TransactionPage,
 } from './types'
@@ -87,6 +88,10 @@ export function useLogin() {
   return useMutation({
     mutationFn: (body: { email: string; password: string }) => api.post<TokenResponse>('/auth/login', body),
   })
+}
+
+export function useRegister() {
+  return useMutation({ mutationFn: (body: RegisterRequest) => api.post<TokenResponse>('/auth/register', body) })
 }
 
 export function useDemoLogin() {
