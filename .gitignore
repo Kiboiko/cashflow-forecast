@@ -38,3 +38,7 @@ reports/control/
 reports/backtest_*_control.json
 backend/control.db
 backend/control.db-*
+
+# Личные материалы к защите — не коммитим
+BRIEFING.md
+SPEECH.md
