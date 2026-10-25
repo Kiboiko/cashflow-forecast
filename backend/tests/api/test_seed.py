@@ -6,7 +6,7 @@ from datetime import date
 import pytest
 from sqlalchemy import func, select
 
-from app.db.models import Alert, Business, ForecastSnapshot, Transaction, User
+from app.db.models import DEFAULT_SETTINGS, Alert, Business, ForecastSnapshot, Transaction, User
 from app.db.session import init_db, make_engine, make_session_factory
 from app.services.forecast_service import ForecastService
 from app.services.personas import PERSONAS
@@ -97,3 +97,16 @@ def test_personas_without_dataset():
     assert [b.id for b in businesses] == ["C064", "C109", "C107"]
     assert all(b.data_as_of is None for b in businesses)
     db.close()
+
+
+def test_reseed_returns_the_settings_to_defaults(seeded):
+    """«Начать заново» (make demo-reset) возвращает и настройки: иначе после показа с изменённым остатком демо уже другое."""
+    db, service, _ = seeded
+    persona = next(p for p in PERSONAS if p.company_id == "C107")
+    business = db.get(Business, "C107")
+    business.settings = {**DEFAULT_SETTINGS, "threshold": 50_000.0, "horizon_days": 60}
+    db.commit()
+    statement = to_csv_bytes(synthetic_statement(company="C107", seed=3))
+    seed_business(db, service, persona, statement, AS_OF)
+    db.expire_all()
+    assert db.get(Business, "C107").settings == DEFAULT_SETTINGS

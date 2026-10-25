@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from datetime import date
 
@@ -12,6 +13,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    DEFAULT_SETTINGS,
     Account,
     Alert,
     Business,
@@ -99,7 +101,7 @@ def ensure_personas(db: Session, companies: pd.DataFrame | None = None) -> list[
 
 
 def wipe_business_data(db: Session, business_id: str, keep_context: bool = False) -> None:
-    """Стирает всё, что относится к бизнесу, кроме самого бизнеса и пользователя (для `--reset`).
+    """Стирает всё, что относится к бизнесу, включая правки настроек, кроме самого бизнеса и пользователя (для `--reset`).
     Контекст «со стороны» оставляем по просьбе: его считают заранее, отдельно от выписки (режим жюри)."""
     db.execute(delete(ExpectedEvent).where(ExpectedEvent.business_id == business_id))
     for model in (Alert, ForecastSnapshot, DataGap, CounterpartyRule, Transaction, ImportBatch, Account):
@@ -109,6 +111,7 @@ def wipe_business_data(db: Session, business_id: str, keep_context: bool = False
     business = db.get(Business, business_id)
     if business is not None:
         business.data_as_of, business.accounting_source = None, None
+        business.settings = copy.deepcopy(DEFAULT_SETTINGS)        # «начать заново» возвращает и настройки (неснижаемый остаток…)
         business.data_version += 1
     db.commit()
 
