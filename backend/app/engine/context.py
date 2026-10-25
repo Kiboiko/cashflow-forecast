@@ -40,6 +40,8 @@ def compute_industry_season(ops: pd.DataFrame, companies: pd.DataFrame, as_of: d
     for cid, g in rev.groupby("company_id"):
         monthly = g.groupby(g["date"].dt.to_period("M"))["amount"].sum()
         monthly = monthly[monthly.index <= complete_end]
+        if monthly.empty:                                            # выручка только в текущем, незавершённом месяце
+            continue
         monthly = monthly.reindex(pd.period_range(monthly.index.min(), complete_end, freq="M"), fill_value=0.0)
         monthly = monthly.iloc[1:]                                   # первый месяц истории обычно неполный
         if len(monthly) < MIN_MONTHS or monthly.mean() <= 0 or cid not in industry_of.index:

@@ -40,7 +40,6 @@ import backtest as bt
 from joblib import Parallel, delayed
 
 from app.engine.backtest import (
-    HORIZONS,
     MIN_HISTORY_DAYS,
     NAIVE,
     RED_PROB,
@@ -50,6 +49,7 @@ from app.engine.backtest import (
     STRUCTURAL_EXT,
     STRUCTURAL_M0,
     YELLOW_PROB,
+    horizons_for,
     reliability,
     run_company,
 )
@@ -61,7 +61,8 @@ from app.engine.pipeline import build_model, evaluate
 from app.engine.trace import trace_forecast
 
 ROOT = Path(__file__).resolve().parents[2]
-HORIZON = 30
+HORIZON = 30                       # горизонт проверки и прогноза от последней даты; короче — если мало факта
+MIN_HORIZON = 7
 REQUIRED = ["operation_date", "amount", "direction", "balance_eod"]
 TITLES = {NAIVE: "Наивный (остаток не меняется)", SEASONAL_NAIVE: "Сезонно-наивный (потоки прошлых недель)",
           STRUCTURAL_M0: "Структурный, выручка M0", STRUCTURAL: "Структурный, выручка M1",
@@ -172,10 +173,21 @@ def write_service_dataset(raw: pd.DataFrame, table: pd.DataFrame | None, target:
 
 
 # ---------- 2. отсечки ----------
-def month_end_cutoffs(ops: pd.DataFrame, max_cutoffs: int) -> list[date]:
-    """Концы месяцев, где есть ≥90 дней истории и 30 дней факта после; если таких нет — одна отсечка за 30 дней до конца."""
+def month_end_cutoffs(ops: pd.DataFrame, max_cutoffs: int, horizon: int = HORIZON,
+                      control_start: pd.Timestamp | None = None) -> list[date]:
+    """Концы месяцев, где есть ≥90 дней истории и `horizon` дней факта после.
+
+    С историей из датасета разработки (`control_start` — первый день контрольных данных) прогнозы делаются только
+    на контрольный период: первая отсечка — последний день истории, дальше концы месяцев. Если подходящих концов
+    месяца нет — одна отсечка за `horizon` дней до конца данных.
+    """
     first, last = ops["date"].min(), ops["date"].max()
-    start, end = first + pd.Timedelta(days=MIN_HISTORY_DAYS), last - pd.Timedelta(days=HORIZON)
+    start, end = first + pd.Timedelta(days=MIN_HISTORY_DAYS), last - pd.Timedelta(days=horizon)
+    if control_start is not None:
+        boundary = control_start - pd.Timedelta(days=1)
+        start = max(start, boundary)
+        cutoffs = sorted({boundary.date(), *(d.date() for d in pd.date_range(start, end, freq="ME"))})
+        return [c for c in cutoffs if pd.Timestamp(c) <= end][-max_cutoffs:]
     cutoffs = [d.date() for d in pd.date_range(start, end, freq="ME")]
     if not cutoffs and end >= start:
         cutoffs = [end.date()]
@@ -234,29 +246,31 @@ def markdown(report: dict, summary: pd.DataFrame, traced: list[str]) -> str:
     ctl = report["control"]
     test = report["test"]["approaches"]
     final = test[STRUCTURAL_CAL]["horizons"]
+    horizon = report["protocol"]["horizon"]
+    hk = str(horizon)
     lines = [f"# Проверка на контрольном датасете ({report['generated']})", "",
              f"Источник: {ctl['source']}. {ctl['n_operations']} операций, {report['n_companies']} компаний, "
              f"период {ctl['period'][0]} … {ctl['period'][1]}. Ретроспективная проверка: отсечки "
              f"{report['cutoffs']['test'][0]} … {report['cutoffs']['test'][-1]} ({len(report['cutoffs']['test'])}), "
-             f"{report['test']['n_points']} точек «компания × отсечка», горизонт {HORIZON} дней, "
-             f"разрывов в факте: {final['30']['detection']['positives']}.", "",
+             f"{report['test']['n_points']} точек «компания × отсечка», горизонт {horizon} дней, "
+             f"разрывов в факте: {final[hk]['detection']['positives']}.", "",
              "Модель заморожена: параметры и калибровка шанса — из репозитория, на этих данных ничего не подбиралось. "
              "Цель — операционный остаток (без денег владельца и разовых операций).", "",
-             "## Обнаружение кассового разрыва в ближайшие 30 дней (итоговая модель)", "",
-             *bt.classification_table(final["30"]), "",
-             f"ROC-AUC {fmt(final['30']['detection']['roc_auc'])}, PR-AUC {fmt(final['30']['detection']['pr_auc'])}, "
-             f"Brier score {fmt(final['30']['detection']['brier'])} (меньше — лучше). "
-             f"Заблаговременность у пойманных разрывов — медиана {final['30']['lead_days_median']} дн., ошибка даты — "
-             f"{final['30']['date_error_days_median']} дн., ошибка суммы нехватки — "
-             f"{fmt(final['30']['shortfall_error_rel_median'])} от масштаба остатка.", "",
+             f"## Обнаружение кассового разрыва в ближайшие {horizon} дней (итоговая модель)", "",
+             *bt.classification_table(final[hk]), "",
+             f"ROC-AUC {fmt(final[hk]['detection']['roc_auc'])}, PR-AUC {fmt(final[hk]['detection']['pr_auc'])}, "
+             f"Brier score {fmt(final[hk]['detection']['brier'])} (меньше — лучше). "
+             f"Заблаговременность у пойманных разрывов — медиана {final[hk]['lead_days_median']} дн., ошибка даты — "
+             f"{final[hk]['date_error_days_median']} дн., ошибка суммы нехватки — "
+             f"{fmt(final[hk]['shortfall_error_rel_median'])} от масштаба остатка.", "",
              "![Матрицы ошибок](figures/confusion.png)", "",
-             "## Точность прогноза остатка (30 дней) и сравнение подходов", "",
+             f"## Точность прогноза остатка ({horizon} дней) и сравнение подходов", "",
              "| Подход | MAE, ₽ (среднее) | MAE, ₽ (медиана) | RMSE, ₽ | MSE, ₽² | WAPE | rel-MAE (медиана) | Покрытие P10–P90 | ROC-AUC |",
              "|---|---|---|---|---|---|---|---|---|"]
     for name in (NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL, STRUCTURAL_EXT):
         if name not in test:
             continue
-        m = test[name]["horizons"]["30"]
+        m = test[name]["horizons"][hk]
         lines.append(f"| {TITLES[name]} | {fmt(m.get('mae_rub_mean'), rub=True)} | {fmt(m.get('mae_rub_median'), rub=True)} | "
                      f"{fmt(m.get('rmse_rub'), rub=True)} | {m.get('mse_rub2', 0):.3e} | {fmt(m.get('wape'), True)} | "
                      f"{fmt(m['rel_mae_median'])} | {fmt(m['interval_coverage'], True)} | {fmt(m['detection']['roc_auc'])} |")
@@ -265,7 +279,7 @@ def markdown(report: dict, summary: pd.DataFrame, traced: list[str]) -> str:
               "", "## По горизонтам (итоговая модель)", "",
               "| Горизонт | MAE, ₽ | RMSE, ₽ | rel-MAE | Покрытие | ROC-AUC | Accuracy | Precision | Recall | F1 |",
               "|---|---|---|---|---|---|---|---|---|---|"]
-    for h in HORIZONS:
+    for h in horizons_for(horizon):
         m = final[str(h)]
         d = m["detection"]
         lines.append(f"| {h} дн. | {fmt(m.get('mae_rub_mean'), rub=True)} | {fmt(m.get('rmse_rub'), rub=True)} | "
@@ -315,7 +329,8 @@ def draw_quality(report: dict, points: list[dict], out: Path) -> list[str]:
     """Матрицы ошибок, надёжность вероятностей и «прогноз против факта» на прошлых отсечках; возвращает имена картинок примеров."""
     plt = _plt()
     out.mkdir(parents=True, exist_ok=True)
-    bt.draw_confusion(report["test"]["approaches"][STRUCTURAL_CAL]["horizons"]["30"], out / "confusion.png")
+    horizon = report["protocol"]["horizon"]
+    bt.draw_confusion(report["test"]["approaches"][STRUCTURAL_CAL]["horizons"][str(horizon)], out / "confusion.png")
 
     fig, ax = plt.subplots(figsize=(4.8, 4.4))
     ax.plot([0, 1], [0, 1], "--", color="#9aa5b1", label="идеально")
@@ -323,7 +338,7 @@ def draw_quality(report: dict, points: list[dict], out: Path) -> list[str]:
     ax.plot([r["predicted"] for r in rel], [r["observed"] for r in rel], "o-", color="#1f6fb2", label="итоговая модель")
     ax.set_xlabel("Что мы говорим: шанс разрыва")
     ax.set_ylabel("Как бывает на самом деле")
-    ax.set_title("Надёжность вероятностей (30 дней)", fontsize=10)
+    ax.set_title(f"Надёжность вероятностей ({horizon} дней)", fontsize=10)
     ax.legend()
     fig.tight_layout()
     fig.savefig(out / "reliability.png", dpi=150)
@@ -332,9 +347,9 @@ def draw_quality(report: dict, points: list[dict], out: Path) -> list[str]:
     # прогноз против факта: пойманный разрыв, пропущенный разрыв и спокойная точка
     examples, names = [], []
     with_paths = [p for p in points if "paths" in p]
-    caught = [p for p in with_paths if p["y"][30] and p["rows"][STRUCTURAL_CAL]["gap"][30] >= YELLOW_PROB]
-    missed = [p for p in with_paths if p["y"][30] and p["rows"][STRUCTURAL_CAL]["gap"][30] < YELLOW_PROB]
-    calm = [p for p in with_paths if not p["y"][30]]
+    caught = [p for p in with_paths if p["y"][horizon] and p["rows"][STRUCTURAL_CAL]["gap"][horizon] >= YELLOW_PROB]
+    missed = [p for p in with_paths if p["y"][horizon] and p["rows"][STRUCTURAL_CAL]["gap"][horizon] < YELLOW_PROB]
+    calm = [p for p in with_paths if not p["y"][horizon]]
     for group in (caught, missed, calm):
         if group:
             examples.append(max(group, key=lambda p: p["scale"]))
@@ -348,7 +363,7 @@ def draw_quality(report: dict, points: list[dict], out: Path) -> list[str]:
         ax.axhline(0, color="#52606d", lw=0.8)
         _rub_axis(ax)
         ax.set_title(f"{p['company']}, прогноз от {p['cutoff']}: шанс разрыва "
-                     f"{p['rows'][STRUCTURAL_CAL]['gap'][30]:.0%}, разрыв {'был' if p['y'][30] else 'не был'}", fontsize=10)
+                     f"{p['rows'][STRUCTURAL_CAL]['gap'][horizon]:.0%}, разрыв {'был' if p['y'][horizon] else 'не был'}", fontsize=10)
         ax.legend(fontsize=8)
         fig.autofmt_xdate()
         fig.tight_layout()
@@ -395,6 +410,9 @@ def main() -> None:
     ap.add_argument("--external", action="store_true", help="добавить абляцию «+внешние данные» (в 2 раза дольше)")
     ap.add_argument("--jobs", type=int, default=-1)
     ap.add_argument("--publish", action="store_true", help="положить JSON в reports/ для страницы «Как мы считаем»")
+    ap.add_argument("--history", type=Path, default=None,
+                    help="история тех же компаний (например, ../data/raw), если контрольный датасет — продолжение периода")
+    ap.add_argument("--horizon", type=int, default=HORIZON, help="горизонт проверки, дней (7–30; меньше — если мало факта)")
     ap.add_argument("--prepare-service", type=Path, default=None,
                     help="разложить датасет для сервиса в <папка>/raw (режим жюри: открыть любую компанию в интерфейсе)")
     args = ap.parse_args()
@@ -411,6 +429,16 @@ def main() -> None:
         if missing:
             raise SystemExit(f"В выписке нет обязательных столбцов: {missing}")
         log(f"  прочитано {len(raw)} строк ({source}); столбцы: {', '.join(raw.columns)}")
+        control_start = None
+        if args.history:
+            hist_raw, hist_table, hist_source = load_dataset(args.history.resolve(), workdir / "history")
+            control_start = pd.to_datetime(raw["operation_date"]).min()
+            same = hist_raw["company_id"].astype(str).isin(set(raw["company_id"].astype(str)))
+            hist_raw = hist_raw[same & (pd.to_datetime(hist_raw["operation_date"]) < control_start)]
+            raw = pd.concat([hist_raw, raw], ignore_index=True)
+            table = table if table is not None else hist_table
+            log(f"  история из {hist_source}: +{len(hist_raw)} строк до {control_start:%d.%m.%Y} по "
+                f"{hist_raw['company_id'].nunique()} компаниям; прогнозы проверяем только на контрольном периоде")
         if args.prepare_service:
             target = write_service_dataset(raw, table, args.prepare_service.resolve())
             log(f"  датасет для интерфейса разложен в {target} (DATA_DIR={args.prepare_service})")
@@ -431,9 +459,19 @@ def main() -> None:
         log(f"  распознано {known.mean():.1%} операций; по источникам: "
             + ", ".join(f"{k} {v}" for k, v in cat["category_source"].value_counts().items()))
 
-        cutoffs = month_end_cutoffs(ops_all, args.max_cutoffs)
-        log(f"Шаг 3. Отсечки ретроспективной проверки: {len(cutoffs)} — "
-            + (", ".join(c.isoformat() for c in cutoffs) if cutoffs else "нет (истории меньше 90+30 дней)"))
+        horizon = max(MIN_HORIZON, min(args.horizon, HORIZON))
+        cutoffs = month_end_cutoffs(ops_all, args.max_cutoffs, horizon, control_start)
+        if not cutoffs:                                            # факта мало: проверяем на том, сколько его есть
+            start = (control_start - pd.Timedelta(days=1) if control_start is not None
+                     else ops_all["date"].min() + pd.Timedelta(days=MIN_HISTORY_DAYS))
+            available = (ops_all["date"].max() - start).days
+            if available >= MIN_HORIZON:
+                horizon, cutoffs = min(horizon, available), [start.date()]
+                log(f"  после отсечки только {available} дн. факта — горизонт проверки {horizon} дн.")
+        log(f"Шаг 3. Отсечки ретроспективной проверки (горизонт {horizon} дн.): {len(cutoffs)} — "
+            + (", ".join(c.isoformat() for c in cutoffs) if cutoffs else
+               f"нет (нужно ≥{MIN_HISTORY_DAYS} дней истории и ≥{MIN_HORIZON} дней факта после)"))
+        hk = str(horizon)
         points: list[dict] = []
         if cutoffs:
             log("Шаг 4. Данные «со стороны» на каждую отсечку (сезонность отрасли, индекс ЕНП, задержки клиентов) — только ≤ отсечки")
@@ -444,23 +482,23 @@ def main() -> None:
             groups = {cid: g for cid, g in ops_all.groupby("company_id")}
             keep = {(cid, c) for cid in groups for c in cutoffs}
             results = Parallel(n_jobs=args.jobs)(
-                delayed(run_company)(g, cutoffs, contexts[cid], args.paths, 0, keep, methods, args.external)
+                delayed(run_company)(g, cutoffs, contexts[cid], args.paths, 0, keep, methods, args.external, horizon)
                 for cid, g in groups.items())
             points = [p for r in results for p in r]
             log(f"  точек «компания × отсечка»: {len(points)} (остальные пропущены: мало истории, дыра в данных "
-                "или нет 30 дней факта)")
+                f"или нет {horizon} дней факта)")
         if not points:
-            log("  метрики посчитать не на чем: нужно ≥90 дней истории и 30 дней факта после отсечки")
+            log(f"  метрики посчитать не на чем: нужно ≥{MIN_HISTORY_DAYS} дней истории и {horizon} дней факта после отсечки")
         else:
             params = calibrate_points(points)
             log(f"Шаг 6. Калибровка шанса — замороженные параметры из репозитория: a={params['a']}, b={params['b']}")
             names = [n for n in (NAIVE, SEASONAL_NAIVE, STRUCTURAL_M0, STRUCTURAL, STRUCTURAL_CAL, STRUCTURAL_EXT)
                      if n in points[0]["rows"]]
             bt.TITLES.update(TITLES)
-            approaches = bt.aggregate(points, names)
-            m30 = approaches[STRUCTURAL_CAL]["horizons"]["30"]
+            approaches = bt.aggregate(points, names, horizons_for(horizon))
+            m30 = approaches[STRUCTURAL_CAL]["horizons"][hk]
             d, red = m30["detection"], m30["detection_red"]
-            log(f"Шаг 7. Метрики (итоговая модель, 30 дней): разрывов в факте {d['positives']} из {d['n']}; "
+            log(f"Шаг 7. Метрики (итоговая модель, {horizon} дней): разрывов в факте {d['positives']} из {d['n']}; "
                 f"жёлтый: Accuracy {d['accuracy']:.1%}, Precision {d['precision'] or 0:.1%}, Recall {d['recall'] or 0:.1%}, "
                 f"F1 {d['f1'] or 0:.3f} (TP {d['tp']}, FP {d['fp']}, FN {d['fn']}, TN {d['tn']}); красный: Accuracy "
                 f"{red['accuracy']:.1%}, Precision {red['precision'] or 0:.1%}, Recall {red['recall'] or 0:.1%}, F1 "
@@ -499,28 +537,36 @@ def main() -> None:
 
         report = {
             "generated": date.today().isoformat(), "n_companies": len(groups),
-            "protocol": {"horizons": list(HORIZONS), "n_paths": args.paths, "yellow_threshold": YELLOW_PROB,
+            "protocol": {"horizon": horizon, "horizons": list(horizons_for(horizon)), "n_paths": args.paths,
+                         "yellow_threshold": YELLOW_PROB,
                          "red_threshold": RED_PROB, "target": "операционный остаток B_op",
                          "models_see": "только данные ≤ отсечки", "frozen_model": True},
             "cutoffs": {"test": [c.isoformat() for c in cutoffs]},
             "test": {"n_points": len(points)},
-            "control": {"source": source, "dataset": name, "n_operations": len(ops_all),
+            "control": {"source": source, "dataset": name if horizon == HORIZON else f"{name}, горизонт {horizon} дн.",
+                        "history": str(args.history) if args.history else None,
+                        "control_start": control_start.date().isoformat() if control_start is not None else None,
+                        "n_operations": len(ops_all),
                         "period": [ops_all["date"].min().date().isoformat(), last.isoformat()],
                         "forecast_levels": summary["level"].value_counts().to_dict() if "level" in summary else {},
                         "traced": traced, "example_figures": []},
         }
         if points:
-            y = np.array([p["y"][30] for p in points])
+            y = np.array([p["y"][horizon] for p in points])
+            industry = companies.set_index("company_id")["industry"].to_dict()
             report["test"].update({
-                "approaches": approaches, "by_industry": bt.by_industry(points, companies.set_index("company_id")["industry"].to_dict()),
+                "approaches": approaches, "by_industry": bt.by_industry(points, industry, horizon),
                 "flows_wape_30d": bt.flows_wape(points),
-                "reliability_30d": reliability(np.array([p["rows"][STRUCTURAL]["gap"][30] for p in points]), y),
-                "reliability_30d_calibrated": reliability(np.array([p["rows"][STRUCTURAL_CAL]["gap"][30] for p in points]), y),
+                "reliability_30d": reliability(np.array([p["rows"][STRUCTURAL]["gap"][horizon] for p in points]), y),
+                "reliability_30d_calibrated": reliability(np.array([p["rows"][STRUCTURAL_CAL]["gap"][horizon] for p in points]), y),
             })
-            if args.external:
+            if args.external and horizon == HORIZON:
                 report["test"]["external_ablation"] = bt.external_ablation(points)
             report["control"]["example_figures"] = draw_quality(report, points, out / "figures")
             (out / "evaluation.md").write_text(markdown(report, summary, traced), encoding="utf-8")
+            if horizon != HORIZON:                                 # страница «Как мы считаем» читает ключ «30»
+                for item in approaches.values():
+                    item["horizons"][str(HORIZON)] = item["horizons"][hk]
         draw_forecasts(detailed, out / "figures")
         (out / "evaluation.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
         if args.publish and points:

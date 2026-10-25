@@ -251,11 +251,16 @@ def predicted_flows(model) -> dict[str, float]:
 
 
 # ---------- прогон по компании ----------
-def _approach_row(summary: Summary, truth: Truth) -> dict:
+def horizons_for(horizon: int) -> tuple[int, ...]:
+    """Горизонты метрик для прогноза на `horizon` дней: стандартные 7/14/30, не длиннее самого прогноза, и он сам."""
+    return tuple(sorted({h for h in HORIZONS if h <= horizon} | {horizon}))
+
+
+def _approach_row(summary: Summary, truth: Truth, horizons: tuple[int, ...] = HORIZONS) -> dict:
     return {
-        "rel_mae": {h: rel_mae(summary.p50, truth.b_op, truth.scale, h) for h in HORIZONS},
-        "errors": {h: balance_errors(summary.p50, truth.b_op, h) for h in HORIZONS},
-        "coverage": {h: coverage(summary.p10, summary.p90, truth.b_op, h) for h in HORIZONS},
+        "rel_mae": {h: rel_mae(summary.p50, truth.b_op, truth.scale, h) for h in horizons},
+        "errors": {h: balance_errors(summary.p50, truth.b_op, h) for h in horizons},
+        "coverage": {h: coverage(summary.p10, summary.p90, truth.b_op, h) for h in horizons},
         "gap": summary.gap_probability, "possible_day": summary.possible_gap_day,
         "shortfall_p50": summary.shortfall_p50, "likely_day": summary.likely_gap_day,
     }
@@ -271,9 +276,10 @@ def eligible(ops_full: pd.DataFrame, cutoff: date, horizon: int = 30) -> bool:
 def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_paths: int = 300,
                 seed: int = 0, keep_paths_for: set[tuple[str, date]] | None = None,
                 methods: tuple[tuple[str, str], ...] = ((STRUCTURAL, "m1"), (STRUCTURAL_M0, "m0"), (STRUCTURAL_M2, "m2")),
-                external: bool = True) -> list[dict]:
+                external: bool = True, horizon: int = 30) -> list[dict]:
     """Бэктест одной компании по отсечкам: четыре подхода против операционного остатка. Без утечек:
-    модели получают только операции ≤ отсечки, контекст (сезонность, индекс ЕНП) посчитан на данных ≤ отсечки."""
+    модели получают только операции ≤ отсечки, контекст (сезонность, индекс ЕНП) посчитан на данных ≤ отсечки.
+    `horizon` — сколько дней факта сверяем (30; короче — если в контрольных данных меньше дней после отсечки)."""
     from app.engine.categorize import categorize
     from app.engine.enrich import enrich
     from app.engine.pipeline import build_model, evaluate, prepare
@@ -281,11 +287,12 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
 
     company = str(ops_full["company_id"].iloc[0])
     full = enrich(categorize(ops_full))                              # только для цели (категории исключённых потоков)
+    hs = horizons_for(horizon)
     points = []
     for cutoff in cutoffs:
-        if not eligible(ops_full, cutoff):
+        if not eligible(ops_full, cutoff, horizon):
             continue
-        truth = build_truth(full, cutoff)
+        truth = build_truth(full, cutoff, horizon)
         if truth is None:
             continue
         prepared = prepare(ops_full[ops_full["date"] <= pd.Timestamp(cutoff)], cutoff)
@@ -293,30 +300,30 @@ def run_company(ops_full: pd.DataFrame, cutoffs: list[date], contexts: dict, n_p
         rng = np.random.default_rng([seed, cutoff.toordinal()])
         rows, revenue_pred = {}, {}
         for name, method in methods:
-            model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
-                                context=context, revenue_method=method)
+            model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), horizon=horizon,
+                                prepared=prepared, context=context, revenue_method=method)
             result = evaluate(model, n_paths, with_recommendations=False)
-            rows[name] = _approach_row(summarize(result.simulation.balance), truth)
+            rows[name] = _approach_row(summarize(result.simulation.balance, hs), truth, hs)
             revenue_pred[name] = predicted_flows(model)["retail_revenue"]
             if name == STRUCTURAL:
                 start, structural = model.start_balance, result
-                flows = {"predicted": predicted_flows(model), "actual": actual_flows(full, cutoff)}
+                flows = {"predicted": predicted_flows(model), "actual": actual_flows(full, cutoff, horizon)}
         from app.engine.receivables import restore_open_documents
 
         documents = restore_open_documents(full, cutoff)
         ext_model = None
         if external:
-            ext_model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), prepared=prepared,
-                                    context=context, invoices=documents)
+            ext_model = build_model(None, cutoff, Settings(include_owner_withdrawals=False), horizon=horizon,
+                                    prepared=prepared, context=context, invoices=documents)
             rows[STRUCTURAL_EXT] = _approach_row(summarize(evaluate(ext_model, n_paths, with_recommendations=False)
-                                                           .simulation.balance), truth)
-        rows[NAIVE] = _approach_row(summarize(naive_paths(start, 30)), truth)
+                                                           .simulation.balance, hs), truth, hs)
+        rows[NAIVE] = _approach_row(summarize(naive_paths(start, horizon), hs), truth, hs)
         rows[SEASONAL_NAIVE] = _approach_row(
-            summarize(seasonal_naive_paths(prepared.ops, cutoff, start, 30, n_paths, rng)), truth)
+            summarize(seasonal_naive_paths(prepared.ops, cutoff, start, horizon, n_paths, rng), hs), truth, hs)
         point = {
             "company": company, "cutoff": cutoff.isoformat(), "scale": truth.scale,
             "first_gap": truth.first_gap, "max_shortfall": truth.max_shortfall,
-            "y": {h: bool((truth.b_op[:h] < 0).any()) for h in HORIZONS},
+            "y": {h: bool((truth.b_op[:h] < 0).any()) for h in hs},
             "rows": rows, "level": structural.risk.level, "flows": flows, "revenue_pred": revenue_pred,
             "has_docs": any(i.direction == "in" for i in documents),
             "flows_external": predicted_flows(ext_model) if ext_model is not None else None,

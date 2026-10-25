@@ -115,12 +115,12 @@ def error_summary(errors: list[dict]) -> dict:
             "rmse_rub": float(np.sqrt(mse.mean())), "wape": float(mae.sum() / actual) if actual > 0 else None}
 
 
-def aggregate(points: list[dict], names: list[str] | None = None) -> dict:
+def aggregate(points: list[dict], names: list[str] | None = None, horizons: tuple[int, ...] = HORIZONS) -> dict:
     """Метрики по подходам и горизонтам для набора точек (компания × отсечка)."""
     result = {}
     for name in names or [n for n in TITLES if points and n in points[0]["rows"]]:
         per_h = {}
-        for h in HORIZONS:
+        for h in horizons:
             y = np.array([p["y"][h] for p in points])
             gap = np.array([p["rows"][name]["gap"][h] for p in points])
             caught = [p for p in points if p["y"][h] and p["rows"][name]["gap"][h] >= YELLOW_PROB]
@@ -195,10 +195,10 @@ def external_ablation(points: list[dict]) -> dict:
             "approaches": {k: agg[k] for k in (STRUCTURAL, STRUCTURAL_EXT)} if agg else {}, "flows_wape": flows}
 
 
-def by_industry(points: list[dict], industry: dict[str, str]) -> dict:
+def by_industry(points: list[dict], industry: dict[str, str], horizon: int = 30) -> dict:
     rows = {}
     for p in points:
-        rows.setdefault(industry.get(p["company"], "?"), []).append(p["rows"][STRUCTURAL]["rel_mae"][30])
+        rows.setdefault(industry.get(p["company"], "?"), []).append(p["rows"][STRUCTURAL]["rel_mae"][horizon])
     return {k: {"n": len(v), "rel_mae_median": float(np.median(v))} for k, v in sorted(rows.items())}
 
 

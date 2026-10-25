@@ -119,3 +119,21 @@ def test_direction_synonyms_from_other_exports_and_unknown_direction_fails():
     assert normalize(raw)["direction"].tolist() == [1, 1, -1, -1]
     with pytest.raises(ValueError, match="Неизвестное направление"):
         normalize(raw.assign(direction=["Перевод"] * 4))
+
+
+def test_industry_season_skips_a_company_whose_revenue_started_this_month():
+    # на 16.08 у новой компании выручка только в августе (месяц не завершён) — индекс отрасли считается по остальным
+    import pandas as pd
+
+    from app.engine.categorize import categorize
+    from app.engine.context import compute_industry_season
+    from tests.helpers import make_statement, monthly
+
+    old = make_statement(monthly("2025-01", 19, 15, "next", 100_000.0, "Зачисление средств по операциям эквайринга",
+                                 inn="0068275202", sign=1), company="A001")
+    new = make_statement({date(2026, 8, 3): [op(1, 50_000.0, "Зачисление средств по операциям эквайринга", inn="0068275202")]},
+                         company="A002")
+    ops = categorize(pd.concat([old, new], ignore_index=True))
+    companies = pd.DataFrame({"company_id": ["A001", "A002"], "industry": ["Кофейня", "Кофейня"]})
+    season = compute_industry_season(ops, companies, date(2026, 8, 16))
+    assert set(season) == {"Кофейня"} and len(season["Кофейня"]) == 12
